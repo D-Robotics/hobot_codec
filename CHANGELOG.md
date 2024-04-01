@@ -1,5 +1,10 @@
 # Changelog for package hobot_codec
 
+tros_2.2.0 (2024-04-01)
+------------------
+1. 适配ros2 humble零拷贝。
+2. 新增中英双语README。
+
 tros_2.1.4 (2024-3-6)
 ------------------
 1. 订阅的数据格式`in_format`和处理后发布的数据格式`out_format`配置参数删除`jpeg-compressed`配置选项，统一使用`jpeg`配置选项指定发布`jpeg`压缩格式图片。
