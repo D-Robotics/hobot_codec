@@ -406,11 +406,11 @@ int HobotCodecNode::init()
     if ((std::string::npos != in_format_.find("h264")) ||
       (std::string::npos != in_format_.find("h265"))) {
       hbmemH26x_subscription_ = this->create_subscription<hbm_img_msgs::msg::HbmH26XFrame>(
-        in_sub_topic_, PUB_QUEUE_NUM,
+        in_sub_topic_, rclcpp::SensorDataQoS(),
         std::bind(&HobotCodecNode::in_hbmemh264_topic_cb, this, std::placeholders::_1));
     } else {
       hbmem_subscription_ = this->create_subscription<hbm_img_msgs::msg::HbmMsg1080P>(
-        in_sub_topic_, PUB_QUEUE_NUM,
+        in_sub_topic_, rclcpp::SensorDataQoS(),
         std::bind(&HobotCodecNode::in_hbmem_topic_cb, this, std::placeholders::_1));
     }
   }
@@ -434,10 +434,10 @@ int HobotCodecNode::init()
     if (0 == out_format_.compare("h264") ||
       0 == out_format_.compare("h265") ) {
       h264hbmem_publisher_ = this->create_publisher<hbm_img_msgs::msg::HbmH26XFrame>(
-        out_pub_topic_.c_str(), PUB_QUEUE_NUM);
+        out_pub_topic_.c_str(), rclcpp::SensorDataQoS());
     } else {
       hbmem_publisher_ = this->create_publisher<hbm_img_msgs::msg::HbmMsg1080P>(
-        out_pub_topic_.c_str(), PUB_QUEUE_NUM);
+        out_pub_topic_.c_str(), rclcpp::SensorDataQoS());
     }
   }
 
