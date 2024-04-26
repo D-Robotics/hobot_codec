@@ -143,17 +143,17 @@ ros2 run hobot_codec hobot_codec_republish
 
 1. 订阅MIPI摄像头发布的NV12格式图片，编码成JPEG图片并存储编码后的图片：
 
-~~~shell
+```shell
 # MIPI摄像头通过零拷贝发布NV12格式图片
 ros2 run mipi_cam mipi_cam --ros-args -p out_format:=nv12 -p io_method:=shared_mem --log-level info
 
 # 编码成JPEG
 ros2 run hobot_codec hobot_codec_republish --ros-args -p in_mode:=shared_mem -p in_format:=nv12 -p out_mode:=shared_mem -p out_format:=jpeg -p sub_topic:=/hbmem_img -p dump_output:=True
-~~~
+```
 
 2. 订阅图像发布工具发布的NV12格式图片，测试编码：
 
-~~~shell
+```shell
 # 图像发布工具发布NV12格式图片
 cp -r /opt/tros/${TROS_DISTRO}/lib/hobot_image_publisher/config/ .
 ros2 run hobot_image_publisher hobot_image_pub --ros-args -p image_source:=./config/test1.jpg -p output_image_w:=960 -p output_image_h:=544 -p image_format:=jpg -p source_image_w:=960 -p source_image_h:=544
@@ -166,40 +166,40 @@ ros2 run hobot_codec hobot_codec_republish --ros-args -p in_mode:=shared_mem -p 
 
 # 编码成h265
 ros2 run hobot_codec hobot_codec_republish --ros-args -p in_mode:=shared_mem -p in_format:=nv12 -p out_mode:=shared_mem -p out_format:=h265 -p sub_topic:=/hbmem_img -p dump_output:=False
-~~~
+```
 
 2. 订阅H264视频，解码出NV12格式图片：
 
-~~~shell
+```shell
 # 解码成nv12图片
 ros2 run hobot_codec hobot_codec_republish --ros-args -p in_mode:=shared_mem -p in_format:=h264 -p out_mode:=shared_mem -p out_format:=nv12 -p sub_topic:=/hbmem_img -p dump_output:=False
 
 # 图像发布工具发布h264视频
 cp -r /opt/tros/${TROS_DISTRO}/lib/hobot_image_publisher/config/ .
 ros2 run hobot_image_publisher hobot_image_pub --ros-args -p image_source:=./config/test1.h264 -p image_format:=h264
-~~~
+```
 
 3. 订阅H265视频，解码出NV12格式图片：
 
-~~~shell
+```shell
 # 解码成nv12图片
 ros2 run hobot_codec hobot_codec_republish --ros-args -p in_mode:=shared_mem -p in_format:=h265 -p out_mode:=shared_mem -p out_format:=nv12 -p sub_topic:=/hbmem_img -p dump_output:=False
 
 # 图像发布工具发布h265视频
 cp -r /opt/tros/${TROS_DISTRO}/lib/hobot_image_publisher/config/ .
 ros2 run hobot_image_publisher hobot_image_pub --ros-args -p image_source:=./config/sky.h265 -p image_format:=h265
-~~~
+```
 
 4. 订阅JPEG图片后解码成NV12格式：
 
-~~~shell
+```shell
 # 订阅jpeg图片，解码成nv12图片
 ros2 run hobot_codec hobot_codec_republish --ros-args -p in_mode:=shared_mem -p in_format:=jpeg -p out_mode:=shared_mem -p out_format:=nv12 -p sub_topic:=/image_jpeg -p dump_output:=False
 
 # 图像发布工具发布JPEG格式图片
 cp -r /opt/tros/${TROS_DISTRO}/lib/hobot_image_publisher/config/ .
 ros2 run hobot_image_publisher hobot_image_pub --ros-args -p image_source:=./config/test1.jpg -p output_image_w:=960 -p output_image_h:=544 -p image_format:=jpg -p is_compressed_img_pub:=True -p msg_pub_topic_name:=/image_jpeg
-~~~
+```
 
 ### 运行方式2，使用launch文件启动
 
@@ -286,12 +286,12 @@ ros2 run hobot_codec hobot_codec_republish --ros-args -p channel:=1 -p in_mode:=
 
 | 类型  | 输入格式 | 输出格式 | 执行命令 |
 | ----  | ------- | ------- | ------- |
-| 解码  |  JPEG   |  NV12   | ros2 launch hobot_codec hobot_codec_benchmark.launch.py image_source:=1920x1080.jpeg image_format:=jpeg codec_in_format:=jpeg codec_out_format:=nv12 |
-| 解码  |  H264   |  NV12   | ros2 launch hobot_codec hobot_codec_benchmark.launch.py image_source:=1920x1080.h264 image_format:=h264 codec_in_format:=h264 codec_out_format:=nv12 |
-| 解码  |  H265   |  NV12   | ros2 launch hobot_codec hobot_codec_benchmark.launch.py image_source:=1920x1080.h265 image_format:=h265 codec_in_format:=h265 codec_out_format:=nv12 |
-| 编码  |  NV12   |  JPEG   | ros2 launch hobot_codec hobot_codec_benchmark.launch.py image_source:=1920x1080.nv12 image_format:=nv12 codec_in_format:=nv12 codec_out_format:=jpeg |
-| 编码  |  NV12   |  H264   | ros2 launch hobot_codec hobot_codec_benchmark.launch.py image_source:=1920x1080.nv12 image_format:=nv12 codec_in_format:=nv12 codec_out_format:=h264 |
-| 编码  |  NV12   |  H265   | ros2 launch hobot_codec hobot_codec_benchmark.launch.py image_source:=1920x1080.nv12 image_format:=nv12 codec_in_format:=nv12 codec_out_format:=h265 |
+| 解码  |  JPEG   |  NV12   | ros2 launch hobot_codec hobot_codec_benchmark.launch.py image_source:=1920x1080.jpeg image_format:=jpeg is_compressed_img_pub:=true codec_in_format:=jpeg codec_out_format:=nv12 |
+| 解码  |  H264   |  NV12   | ros2 launch hobot_codec hobot_codec_benchmark.launch.py image_source:=1920x1080.h264 image_format:=h264 is_compressed_img_pub:=true codec_in_format:=h264 codec_out_format:=nv12 |
+| 解码  |  H265   |  NV12   | ros2 launch hobot_codec hobot_codec_benchmark.launch.py image_source:=1920x1080.h265 image_format:=h265 is_compressed_img_pub:=true codec_in_format:=h265 codec_out_format:=nv12 |
+| 编码  |  NV12   |  JPEG   | ros2 launch hobot_codec hobot_codec_benchmark.launch.py image_source:=1920x1080.nv12 image_format:=nv12 is_compressed_img_pub:=false codec_in_format:=nv12 codec_out_format:=jpeg |
+| 编码  |  NV12   |  H264   | ros2 launch hobot_codec hobot_codec_benchmark.launch.py image_source:=1920x1080.nv12 image_format:=nv12 is_compressed_img_pub:=false codec_in_format:=nv12 codec_out_format:=h264 |
+| 编码  |  NV12   |  H265   | ros2 launch hobot_codec hobot_codec_benchmark.launch.py image_source:=1920x1080.nv12 image_format:=nv12 is_compressed_img_pub:=false codec_in_format:=nv12 codec_out_format:=h265 |
 
 2、测试结果
 
