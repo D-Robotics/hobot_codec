@@ -58,6 +58,10 @@ elseif(PLATFORM_X86)
   set(PREFIX_PATH x86)
   message("THIRD_PARTY is " ${THIRD_PARTY})
   find_package(OpenCV 4 REQUIRED)
+elseif(PLATFORM_X5)
+  message("build platform X5")
+  add_definitions(-DPLATFORM_X5)
+  set(PREFIX_PATH x5)
 else()
   message("invalid platform, build platform X3 default")
   add_definitions(-DPLATFORM_X3)
@@ -77,6 +81,12 @@ link_directories(
   ${CMAKE_SYSROOT}/usr/lib/hbmedia
 )
 
+if(PLATFORM_X5)
+  link_directories(
+    ${CMAKE_SYSROOT}/usr/hobot/lib
+  )
+endif()
+
 add_executable(hobot_codec_republish
   src/example.cpp
   src/hobot_codec_node.cpp
@@ -94,6 +104,8 @@ elseif(PLATFORM_Rdkultra)
   set(SYS_LIB multimedia)
 elseif(PLATFORM_X86)
   set(SYS_LIB ${OpenCV_LIBS})
+elseif(PLATFORM_X5)
+  set(SYS_LIB multimedia)
 else()
   message("link platform X3 libs default")
   set(SYS_LIB vio isp_algo z hbmedia isp ion multimedia iar tinyalsa cjson)

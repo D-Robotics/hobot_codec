@@ -28,6 +28,8 @@ HobotCodecImpl::HobotCodecImpl() {
   std::string platform;
 #ifdef PLATFORM_X3
   platform = "platform x3";
+#elif defined(PLATFORM_X5)
+  platform = "platform x5";
 #else
   #ifdef PLATFORM_Rdkultra
     platform = "platform rdkultra";
