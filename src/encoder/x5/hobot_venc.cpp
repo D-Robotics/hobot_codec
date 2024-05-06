@@ -82,6 +82,31 @@ int HobotVenc::Start(int nPicWidth, int nPicHeight) {
   } else {
     init_pic_w_ = nPicWidth;
     init_pic_h_ = nPicHeight;
+
+    if (CodecImgFormat::FORMAT_JPEG == frame_fmt_ ||
+      CodecImgFormat::FORMAT_MJPEG == frame_fmt_) {
+      aline_w_ = 16;
+      aline_h_ = 16;
+    } else {
+      aline_w_ = 16;
+      aline_h_ = 8;
+    }
+
+    auto do_aline = [](int in, int aline)->int{
+      return (in + aline - 1) / aline * aline;
+    };
+    alined_pic_w_ = do_aline(init_pic_w_, aline_w_);
+    alined_pic_h_ = do_aline(init_pic_h_, aline_h_);
+
+    RCLCPP_WARN_STREAM(rclcpp::get_logger("HobotVenc"),
+                       "init_pic_w_: " << init_pic_w_
+                       << ", init_pic_h_: " << init_pic_h_
+                       << ", alined_pic_w_: " << alined_pic_w_
+                       << ", alined_pic_h_: " << alined_pic_h_
+                       << ", aline_w_: " << aline_w_
+                       << ", aline_h_: " << aline_h_
+                       );
+
     if (0 != FormalInit()) {
       RCLCPP_ERROR(rclcpp::get_logger("HobotVenc"), "FormalInit fail!");
       return -1;
@@ -152,13 +177,17 @@ int HobotVenc::Input(const uint8_t *pDataIn, int nPicWidth, int nPicHeight, int 
     // 获取输入buffer成功，将图片拷贝到申请的buffer
     int lumaSize = 0, chromaSize = 0, chromaCbSize = 0, chromaCrSize = 0;
     mc_pixel_format_t pix_fmt = context_->video_enc_params.pix_fmt;
-    hb_s32 width = context_->video_enc_params.width;
-    hb_s32 height = context_->video_enc_params.height;
+    // context_->video_enc_params中的width和height是对齐后的宽和高
+    hb_s32 width_alined = context_->video_enc_params.width;
+    hb_s32 height_alined = context_->video_enc_params.height;
+
     hb_u8 *input_virY = inputBuffer.vframe_buf.vir_ptr[0];
     hb_u8 *input_virCb = inputBuffer.vframe_buf.vir_ptr[1];
     hb_u8 *input_virCr = inputBuffer.vframe_buf.vir_ptr[2];
+    memset(input_virY, 127, width_alined * height_alined);
+    memset(input_virCb, 127, width_alined * height_alined / 2);
 
-    lumaSize = width * height * byte_per_pixel_;
+    lumaSize = nPicWidth * nPicHeight * byte_per_pixel_;
     chromaSize = lumaSize/2;
     const uint8_t *data_buf = pDataIn;
     memcpy(reinterpret_cast<void*>(input_virY), data_buf, lumaSize);
@@ -208,8 +237,8 @@ int HobotVenc::GetOutput(std::shared_ptr<OutputFrameDataType> pOutFrm) {
     if (0 == ret) {
       pOutFrm->mPtrData = reinterpret_cast<uint8_t*>(outputBuffer_.vstream_buf.vir_ptr);
       pOutFrm->mDataLen = outputBuffer_.vstream_buf.size;
-      pOutFrm->mWidth = init_pic_w_;
-      pOutFrm->mHeight = init_pic_h_;
+      pOutFrm->mWidth = alined_pic_w_;
+      pOutFrm->mHeight = alined_pic_h_;
       pOutFrm->mFrameFmt = frame_fmt_;
       return 0;
     } else {
@@ -298,8 +327,8 @@ int HobotVenc::FormalInit() {
   context_->codec_id = m_enPalType;
   context_->encoder = true;
   auto params = &context_->video_enc_params;
-  params->width = init_pic_w_;
-  params->height = init_pic_h_;
+  params->width = alined_pic_w_;
+  params->height = alined_pic_h_;
   params->pix_fmt = MC_PIXEL_FORMAT_NV12;
   params->bitstream_buf_size =
     (params->width * params->height * 3 / 2  + 0x3ff) & ~0x3ff;
@@ -338,8 +367,6 @@ int HobotVenc::FormalInit() {
     params->rc_params.h265_cbr_params.qp_map_enable = 0;
     params->rc_params.h264_cbr_params.bit_rate = 5000;
     params->rc_params.h264_cbr_params.frame_rate = 30;
-    // params->gop_params.decoding_refresh_type = 2;
-    // params->gop_params.gop_preset_idx = 2;
   } else if (CodecImgFormat::FORMAT_H264 == frame_fmt_) {
     params->rc_params.mode = MC_AV_RC_MODE_H264CBR;
     ret = hb_mm_mc_get_rate_control_config(context_, &params->rc_params);
@@ -368,20 +395,14 @@ int HobotVenc::FormalInit() {
 		params->rc_params.h264_cbr_params.bit_rate = 5000;
   } else if (CodecImgFormat::FORMAT_JPEG == frame_fmt_ ||
     CodecImgFormat::FORMAT_MJPEG == frame_fmt_) {
-		// context_->codec_id = MEDIA_CODEC_ID_MJPEG;
-		// params->rc_params.mode = MC_AV_RC_MODE_MJPEGFIXQP;
-    // ret = hb_mm_mc_get_rate_control_config(context_, &params->rc_params);
-    // if (ret != 0) {
-    //   RCLCPP_ERROR(rclcpp::get_logger("HobotVenc"), "hb_mm_mc_get_rate_control_config failed, ret: 0x%x", ret);
-    //   return ret;
-    // }
-		// params->mjpeg_enc_config.restart_interval = init_pic_w_ / 16;
-    
 		context_->codec_id = MEDIA_CODEC_ID_JPEG;
 		params->jpeg_enc_config.quality_factor = 50;
-		params->mjpeg_enc_config.restart_interval = init_pic_w_ / 16;
+		params->mjpeg_enc_config.restart_interval = alined_pic_w_ / 16;
   }
-
+  // jpeg bitstream buffer size should be aligned with 4096
+  int aline = 4096;
+  params->bitstream_buf_size =
+    (params->bitstream_buf_size + aline - 1) / aline * aline;
   ret = hb_mm_mc_initialize(context_);
   if (ret != 0) {
     RCLCPP_ERROR(rclcpp::get_logger("HobotVenc"), "hb_mm_mc_initialize failed, ret: 0x%x", ret);

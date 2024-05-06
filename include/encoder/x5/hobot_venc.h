@@ -49,6 +49,12 @@ class HobotVenc : public HobotCodecBase {
 
   // 对于编码，pixel为1
   const int byte_per_pixel_ = 1;
+  
+  // 当输入为yuv420和yuv422格式时
+  // JPEG/MJPEG编码时，要求输入宽高都是16对齐
+  // H264和H265编码时，要求宽是16字节对齐，高是8字节对齐
+  int aline_w_ = 16;
+  int aline_h_ = 8;
 
   // 真正的初始化，Start中获取到输入分辨率后进行
   int FormalInit();

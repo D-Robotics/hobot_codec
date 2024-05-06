@@ -60,6 +60,9 @@ class HobotCodecBase {
   // 启动codec时的分辨率，Start接口中更新
   int init_pic_w_;
   int init_pic_h_;
+  // 字节对齐后的分辨率，Start接口中更新
+  int alined_pic_w_;
+  int alined_pic_h_;
   
   // 初始化时申请的缓存大小
   int codec_buf_size_ = 0;
