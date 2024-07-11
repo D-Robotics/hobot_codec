@@ -45,6 +45,7 @@ int HobotVenc::Init(const std::shared_ptr<HobotCodecParaBase>& sp_hobot_codec_pa
 
   frame_fmt_ = ConvertPalType(m_enPalType);
   codec_chn_ = sp_hobot_codec_para->mChannel_;
+  m_fJpgQuality = sp_hobot_codec_para->jpg_quality_;
 
   return 0;
 }
@@ -396,7 +397,7 @@ int HobotVenc::FormalInit() {
   } else if (CodecImgFormat::FORMAT_JPEG == frame_fmt_ ||
     CodecImgFormat::FORMAT_MJPEG == frame_fmt_) {
 		context_->codec_id = MEDIA_CODEC_ID_JPEG;
-		params->jpeg_enc_config.quality_factor = 50;
+		params->jpeg_enc_config.quality_factor = m_fJpgQuality;
 		params->mjpeg_enc_config.restart_interval = alined_pic_w_ / 16;
   }
   // jpeg bitstream buffer size should be aligned with 4096

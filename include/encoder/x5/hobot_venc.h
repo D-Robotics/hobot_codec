@@ -49,6 +49,8 @@ class HobotVenc : public HobotCodecBase {
 
   // 对于编码，pixel为1
   const int byte_per_pixel_ = 1;
+
+   float m_fJpgQuality = 50.0;
   
   // 当输入为yuv420和yuv422格式时
   // JPEG/MJPEG编码时，要求输入宽高都是16对齐
