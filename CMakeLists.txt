@@ -40,6 +40,7 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(img_msgs REQUIRED)
+find_package(rclcpp_components REQUIRED)
 
 # x3|rdkultra|x86
 set(PREFIX_PATH x3)
@@ -116,9 +117,30 @@ target_link_libraries(hobot_codec_republish
   ${BASE_LIBRARIES} ${SYS_LIB}
 )
 
+add_library(hobot_codec_republish_plugin SHARED
+  src/hobot_codec_node.cpp
+  src/hobot_codec_impl.cpp
+  src/hobot_codec_base.cpp
+  src/decoder/${PREFIX_PATH}/hobot_vdec.cpp
+  src/encoder/${PREFIX_PATH}/hobot_venc.cpp
+)
+target_compile_definitions(hobot_codec_republish_plugin
+  PRIVATE "COMPOSITION_BUILDING_DLL")
+ament_target_dependencies(hobot_codec_republish_plugin
+  rclcpp
+  rclcpp_components
+  sensor_msgs
+  img_msgs
+  hbm_img_msgs
+)
+rclcpp_components_register_nodes(hobot_codec_republish_plugin "HobotCodecNode")
+set(node_plugins "${node_plugins}HobotCodecNode;$<TARGET_FILE:hobot_codec_republish_plugin>\n")
+
+
 ament_target_dependencies(
   hobot_codec_republish
   rclcpp
+  rclcpp_components
   sensor_msgs
   img_msgs
   hbm_img_msgs
@@ -127,9 +149,25 @@ ament_target_dependencies(
 target_link_libraries(hobot_codec_republish
 )
 
+ament_target_dependencies(
+  hobot_codec_republish_plugin
+  rclcpp
+  sensor_msgs
+  img_msgs
+  hbm_img_msgs
+)
+target_link_libraries(hobot_codec_republish_plugin 
+  ${BASE_LIBRARIES} ${SYS_LIB}
+  )
+
 # Install executables
 install(
   TARGETS hobot_codec_republish
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
+
+install(
+  TARGETS hobot_codec_republish_plugin
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
