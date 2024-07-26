@@ -4,7 +4,7 @@
   <name>hobot_codec</name>
   <version>2.2.0</version>
   <description>TogetheROS hobot codec</description>
-  <maintainer email="nuo.wu@horizon.ai">nuo.wu</maintainer>
+  <maintainer email="nuo.wu@d-robotics.cc">nuo.wu</maintainer>
   <license>Apache License 2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
