@@ -45,12 +45,16 @@ def generate_launch_description():
     codec_out_format_launch_arg = DeclareLaunchArgument(
         "codec_out_format", default_value=TextSubstitution(text="null")
     )
+    is_compressed_img_pub_launch_arg = DeclareLaunchArgument(
+        "is_compressed_img_pub", default_value=TextSubstitution(text="false")
+    )
 
     return LaunchDescription([
         image_source_launch_arg,
         image_format_launch_arg,
         codec_in_format_launch_arg,
         codec_out_format_launch_arg,
+        is_compressed_img_pub_launch_arg,
         # 启动零拷贝环境配置node
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
@@ -74,7 +78,7 @@ def generate_launch_description():
                 {"fps": 30},
                 {"is_loop": True},
                 {"is_shared_mem": True},
-                {"is_compressed_img_pub": True}
+                {"is_compressed_img_pub": LaunchConfiguration('is_compressed_img_pub')},
             ],
             arguments=['--ros-args', '--log-level', 'warn']
         ),

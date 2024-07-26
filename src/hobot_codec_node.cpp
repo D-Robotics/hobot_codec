@@ -1261,3 +1261,6 @@ std::shared_ptr<RunTimeData> RunTimeStat::Get(int time_interval_ms) {
   }
   return nullptr;
 }
+
+#include <rclcpp_components/register_node_macro.hpp>
+RCLCPP_COMPONENTS_REGISTER_NODE(HobotCodecNode)
