@@ -42,7 +42,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(img_msgs REQUIRED)
 find_package(rclcpp_components REQUIRED)
 
-# x3|rdkultra|x86
+# x3|rdkultra|x86|x5
 set(PREFIX_PATH x3)
 
 if(PLATFORM_X3)
@@ -88,15 +88,6 @@ if(PLATFORM_X5)
   )
 endif()
 
-add_executable(hobot_codec_republish
-  src/example.cpp
-  src/hobot_codec_node.cpp
-  src/hobot_codec_impl.cpp
-  src/hobot_codec_base.cpp
-  src/decoder/${PREFIX_PATH}/hobot_vdec.cpp
-  src/encoder/${PREFIX_PATH}/hobot_venc.cpp
-)
-
 set(BASE_LIBRARIES pthread dl)
 # 根据平台选择需要链接的库
 if(PLATFORM_X3)
@@ -112,33 +103,16 @@ else()
   set(SYS_LIB vio isp_algo z hbmedia isp ion multimedia iar tinyalsa cjson)
 endif()
 
-#${PROJECT_NAME}
-target_link_libraries(hobot_codec_republish
-  ${BASE_LIBRARIES} ${SYS_LIB}
-)
-
-add_library(hobot_codec_republish_plugin SHARED
+add_library(${PROJECT_NAME}_plugin SHARED
   src/hobot_codec_node.cpp
   src/hobot_codec_impl.cpp
   src/hobot_codec_base.cpp
   src/decoder/${PREFIX_PATH}/hobot_vdec.cpp
   src/encoder/${PREFIX_PATH}/hobot_venc.cpp
 )
-target_compile_definitions(hobot_codec_republish_plugin
+target_compile_definitions(${PROJECT_NAME}_plugin
   PRIVATE "COMPOSITION_BUILDING_DLL")
-ament_target_dependencies(hobot_codec_republish_plugin
-  rclcpp
-  rclcpp_components
-  sensor_msgs
-  img_msgs
-  hbm_img_msgs
-)
-rclcpp_components_register_nodes(hobot_codec_republish_plugin "HobotCodecNode")
-set(node_plugins "${node_plugins}HobotCodecNode;$<TARGET_FILE:hobot_codec_republish_plugin>\n")
-
-
-ament_target_dependencies(
-  hobot_codec_republish
+ament_target_dependencies(${PROJECT_NAME}_plugin
   rclcpp
   rclcpp_components
   sensor_msgs
@@ -146,20 +120,33 @@ ament_target_dependencies(
   hbm_img_msgs
 )
 
-target_link_libraries(hobot_codec_republish
-)
+# EXECUTABLE 编译选项将会在编译时使用 rclcpp_components/node_factory.hpp 创建一个 node_main_${PROJECT_NAME}.cpp 
+# 实现编译一个 executable
+# rclcpp_components_register_node(${PROJECT_NAME}_plugin
+#   PLUGIN "HobotCodecNode"
+#   EXECUTABLE hobot_codec_republish
+# )
+rclcpp_components_register_nodes(${PROJECT_NAME}_plugin "HobotCodecNode")
+set(node_plugins "${node_plugins}HobotCodecNode;$<TARGET_FILE:${PROJECT_NAME}_plugin>\n")
 
 ament_target_dependencies(
-  hobot_codec_republish_plugin
+  ${PROJECT_NAME}_plugin
   rclcpp
   sensor_msgs
   img_msgs
   hbm_img_msgs
 )
-target_link_libraries(hobot_codec_republish_plugin 
+target_link_libraries(${PROJECT_NAME}_plugin 
   ${BASE_LIBRARIES} ${SYS_LIB}
   )
 
+add_executable(hobot_codec_republish
+  src/example.cpp
+)
+target_link_libraries(hobot_codec_republish
+  ${PROJECT_NAME}_plugin
+)
+  
 # Install executables
 install(
   TARGETS hobot_codec_republish
@@ -167,7 +154,7 @@ install(
 )
 
 install(
-  TARGETS hobot_codec_republish_plugin
+  TARGETS ${PROJECT_NAME}_plugin
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
