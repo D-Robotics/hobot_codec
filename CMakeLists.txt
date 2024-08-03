@@ -103,16 +103,16 @@ else()
   set(SYS_LIB vio isp_algo z hbmedia isp ion multimedia iar tinyalsa cjson)
 endif()
 
-add_library(${PROJECT_NAME}_plugin SHARED
+add_library(${PROJECT_NAME}_component SHARED
   src/hobot_codec_node.cpp
   src/hobot_codec_impl.cpp
   src/hobot_codec_base.cpp
   src/decoder/${PREFIX_PATH}/hobot_vdec.cpp
   src/encoder/${PREFIX_PATH}/hobot_venc.cpp
 )
-target_compile_definitions(${PROJECT_NAME}_plugin
+target_compile_definitions(${PROJECT_NAME}_component
   PRIVATE "COMPOSITION_BUILDING_DLL")
-ament_target_dependencies(${PROJECT_NAME}_plugin
+ament_target_dependencies(${PROJECT_NAME}_component
   rclcpp
   rclcpp_components
   sensor_msgs
@@ -122,31 +122,22 @@ ament_target_dependencies(${PROJECT_NAME}_plugin
 
 # EXECUTABLE 编译选项将会在编译时使用 rclcpp_components/node_factory.hpp 创建一个 node_main_${PROJECT_NAME}.cpp 
 # 实现编译一个 executable
-# rclcpp_components_register_node(${PROJECT_NAME}_plugin
-#   PLUGIN "HobotCodecNode"
-#   EXECUTABLE hobot_codec_republish
-# )
-rclcpp_components_register_nodes(${PROJECT_NAME}_plugin "HobotCodecNode")
-set(node_plugins "${node_plugins}HobotCodecNode;$<TARGET_FILE:${PROJECT_NAME}_plugin>\n")
+rclcpp_components_register_node(${PROJECT_NAME}_component
+  PLUGIN "HobotCodecNode"
+  EXECUTABLE hobot_codec_republish
+)
 
 ament_target_dependencies(
-  ${PROJECT_NAME}_plugin
+  ${PROJECT_NAME}_component
   rclcpp
   sensor_msgs
   img_msgs
   hbm_img_msgs
 )
-target_link_libraries(${PROJECT_NAME}_plugin 
+target_link_libraries(${PROJECT_NAME}_component 
   ${BASE_LIBRARIES} ${SYS_LIB}
   )
 
-add_executable(hobot_codec_republish
-  src/example.cpp
-)
-target_link_libraries(hobot_codec_republish
-  ${PROJECT_NAME}_plugin
-)
-  
 # Install executables
 install(
   TARGETS hobot_codec_republish
@@ -154,7 +145,7 @@ install(
 )
 
 install(
-  TARGETS ${PROJECT_NAME}_plugin
+  TARGETS ${PROJECT_NAME}_component
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
