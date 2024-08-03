@@ -96,7 +96,7 @@ class HobotCodecNode : public rclcpp::Node {
       hbmem_subscription_ = nullptr;
   rclcpp::Subscription<hbm_img_msgs::msg::HbmH26XFrame>::SharedPtr
       hbmemH26x_subscription_;
-  void in_ros_topic_cb(const sensor_msgs::msg::Image::ConstSharedPtr msg);
+  void in_ros_topic_cb(sensor_msgs::msg::Image::ConstSharedPtr msg);
   void in_ros_h26x_topic_cb(const img_msgs::msg::H26XFrame::ConstSharedPtr msg);
 
   void in_hbmem_topic_cb(const hbm_img_msgs::msg::HbmMsg1080P::ConstSharedPtr msg);

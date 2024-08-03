@@ -84,14 +84,14 @@ int IsType(const char* tsType, const std::vector<const char*>& fmtTypes)
 
 void HobotCodecNode::get_params()
 {
-  RCLCPP_INFO(rclcpp::get_logger("HobotCodecNode"), "get_params");
+  RCLCPP_INFO(this->get_logger(), "get_params");
   auto parameters_client = std::make_shared<rclcpp::SyncParametersClient>(this);
   for (auto &parameter : parameters_client->get_parameters(
            {"sub_topic", "pub_topic", "channel", "in_mode", "out_mode",
             "in_format", "out_format", "enc_qp", "jpg_quality",
             "input_framerate", "output_framerate", "dump_output"})) {
     if (parameter.get_name() == "sub_topic") {
-      RCLCPP_INFO(rclcpp::get_logger("HobotCodecNode"),
+      RCLCPP_INFO(this->get_logger(),
         "sub_topic value: %s", parameter.value_to_string().c_str());
       in_sub_topic_ = parameter.value_to_string();
     } else if (parameter.get_name() == "pub_topic") {
@@ -101,44 +101,44 @@ void HobotCodecNode::get_params()
     } else if (parameter.get_name() == "out_mode") {
       out_mode_ = parameter.value_to_string();
     } else if (parameter.get_name() == "enc_qp") {
-      RCLCPP_INFO(rclcpp::get_logger("HobotCodecNode"),
+      RCLCPP_INFO(this->get_logger(),
         "enc_qp: %f", parameter.as_double());
       enc_qp_ = parameter.as_double();
     } else if (parameter.get_name() == "jpg_quality") {
-      RCLCPP_INFO(rclcpp::get_logger("HobotCodecNode"),
+      RCLCPP_INFO(this->get_logger(),
         "jpg_quality: %f", parameter.as_double());
       jpg_quality_ = parameter.as_double();
     } else if (parameter.get_name() == "in_format") {
       in_format_ = parameter.value_to_string();
-      RCLCPP_INFO(rclcpp::get_logger("HobotCodecNode"),
+      RCLCPP_INFO(this->get_logger(),
         "in_format value: %s", parameter.value_to_string().c_str());
     } else if (parameter.get_name() == "out_format") {
       out_format_ = parameter.value_to_string();
-      RCLCPP_INFO(rclcpp::get_logger("HobotCodecNode"),
+      RCLCPP_INFO(this->get_logger(),
         "out_format value: %s", parameter.value_to_string().c_str());
     } else if (parameter.get_name() == "channel") {
       mChannel_ = parameter.as_int();
-      RCLCPP_INFO(rclcpp::get_logger("HobotCodecNode"),
+      RCLCPP_INFO(this->get_logger(),
         "mChannel_ value: %s", parameter.value_to_string().c_str());
     } else if (parameter.get_name() == "input_framerate") {
       input_framerate_ = parameter.as_int();
-      RCLCPP_INFO(rclcpp::get_logger("HobotCodecNode"),
+      RCLCPP_INFO(this->get_logger(),
         "input_framerate_ value: %s", parameter.value_to_string().c_str());
     } else if (parameter.get_name() == "output_framerate") {
       output_framerate_ = parameter.as_int();
-      RCLCPP_INFO(rclcpp::get_logger("HobotCodecNode"),
+      RCLCPP_INFO(this->get_logger(),
         "output_framerate_ value: %s", parameter.value_to_string().c_str());
     } else if (parameter.get_name() == "dump_output") {
       dump_output_ = parameter.as_bool();
-      RCLCPP_INFO(rclcpp::get_logger("HobotCodecNode"),
+      RCLCPP_INFO(this->get_logger(),
         "dump_output_ value: %d, file: %s", dump_output_, dump_output_file_.data());
     } else {
-      RCLCPP_WARN(rclcpp::get_logger("HobotCodecNode"),
+      RCLCPP_WARN(this->get_logger(),
         "Invalid parameter name: %s", parameter.get_name().c_str());
     }
   }
 
-  RCLCPP_WARN_STREAM(rclcpp::get_logger("HobotCodecNode"),
+  RCLCPP_WARN_STREAM(this->get_logger(),
     "Parameters:"
     << "\nsub_topic: " << in_sub_topic_
     << "\npub_topic: " << out_pub_topic_
@@ -158,7 +158,7 @@ void HobotCodecNode::get_params()
 void HobotCodecNode::check_params()
 {
   if (mChannel_ < 0 || mChannel_ > 3) {
-    RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"),
+    RCLCPP_ERROR(this->get_logger(),
         "Invalid channel number: %d! 0~3 are supported, "
         "please check the channel parameter.", mChannel_);
     rclcpp::shutdown();
@@ -166,7 +166,7 @@ void HobotCodecNode::check_params()
   }
   
   if (!IsType(in_mode_.c_str(), in_mode)) {
-    RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"),
+    RCLCPP_ERROR(this->get_logger(),
     "Invalid in_mode: %s! 'ros' and 'shared_mem' are supported. "
     "Please check the in_mode parameter.", in_mode_.c_str());
     rclcpp::shutdown();
@@ -174,7 +174,7 @@ void HobotCodecNode::check_params()
   }
   
   if (!IsType(out_mode_.c_str(), out_mode)) {
-    RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"),
+    RCLCPP_ERROR(this->get_logger(),
     "Invalid out_mode: %s! 'ros' and 'shared_mem' are supported. "
     "Please check the out_mode parameter.", out_mode_.c_str());
     rclcpp::shutdown();
@@ -182,7 +182,7 @@ void HobotCodecNode::check_params()
   }
   
   if (!IsType(in_format_.c_str(), in_format)) {
-    RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"),
+    RCLCPP_ERROR(this->get_logger(),
     "Invalid in_format: %s! 'bgr8', 'rgb8', 'nv12', 'jpeg', 'h264' "
     "and 'h265' are supported. Please check the in_format parameter.", in_format_.c_str());
     rclcpp::shutdown();
@@ -190,7 +190,7 @@ void HobotCodecNode::check_params()
   }
   
   if (!IsType(out_format_.c_str(), out_format)) {
-    RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"),
+    RCLCPP_ERROR(this->get_logger(),
     "Invalid out_format: %s! 'bgr8', 'rgb8', 'nv12', 'jpeg', "
     "'h264' and 'h265' are supported. "
     "Please check the out_format parameter.", out_format_.c_str());
@@ -200,14 +200,14 @@ void HobotCodecNode::check_params()
 
   if(IsType(in_format_.c_str(), enc_types)) {
     if(!IsType(out_format_.c_str(), raw_types)) { // 输入为编码格式，输出必须为raw格式
-      RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"),
+      RCLCPP_ERROR(this->get_logger(),
         "%s cannot be decoded to %s", in_format_.c_str(), out_format_.c_str());
       rclcpp::shutdown();
       return;
     }
   } else if(IsType(in_format_.c_str(), raw_types)) {
     if(!IsType(out_format_.c_str(), enc_types)) { // 输入为raw格式，输出必须为编码格式
-      RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"),
+      RCLCPP_ERROR(this->get_logger(),
         "%s cannot be encoded to %s", in_format_.c_str(), out_format_.c_str());
       rclcpp::shutdown();
       return;
@@ -216,14 +216,14 @@ void HobotCodecNode::check_params()
 
   if (IsType(out_format_.c_str(), enc_types)) {
     if (enc_qp_ < 0 || enc_qp_ > 100) {
-      RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"),
+      RCLCPP_ERROR(this->get_logger(),
       "Invalid enc_qp: %f! The value range is floating point number from 0 to 100."
       " Please check the enc_qp parameter.", enc_qp_);
       rclcpp::shutdown();
       return;
     }
     if (jpg_quality_ < 0 || jpg_quality_ > 100) {
-      RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"),
+      RCLCPP_ERROR(this->get_logger(),
       "Invalid jpg_quality: %f! The value range is floating point number from 0 to 100."
       " Please check the jpg_quality parameter.", jpg_quality_);
       rclcpp::shutdown();
@@ -232,19 +232,19 @@ void HobotCodecNode::check_params()
   }
   
   if (input_framerate_ <= 0) {
-    RCLCPP_WARN(rclcpp::get_logger("HobotCodecNode"),
+    RCLCPP_WARN(this->get_logger(),
     "Invalid input_framerate: %d! The input_framerate must be a positive integer! "
     "Use '30' instead!", input_framerate_);
     input_framerate_ = 30;
   }
   if (output_framerate_ <=0 && output_framerate_ != -1) {
-    RCLCPP_WARN(rclcpp::get_logger("HobotCodecNode"),
+    RCLCPP_WARN(this->get_logger(),
     "Invalid output_framerate: %d! The output_framerate must be a positive integer or '-1'! "
     "Use '-1' instead!", output_framerate_);
     output_framerate_ = -1;
   }
   if (output_framerate_ > input_framerate_) {
-    RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"),
+    RCLCPP_ERROR(this->get_logger(),
     "input_framerate: %d output_framerate: %d, "
     "output_framerate must be less than or equal to input_framerate",
     input_framerate_,
@@ -262,7 +262,7 @@ void HobotCodecNode::on_get_timer()
   std::unique_lock<std::mutex> timestamp_lk(timestamp_mtx);
   //定时器每隔5s检查一次获取图片的时间，如果已经超过5s还未收到，会输出error日志。
   if (mNow - get_image_time >= 5000) {
-    RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"),
+    RCLCPP_ERROR(this->get_logger(),
                  "Hobot_Codec has not received image for more than 5 seconds!"
                  " Please check whether the image publisher still exists by "
                  "'ros2 topic info %s'!",
@@ -298,7 +298,7 @@ HobotCodecNode::HobotCodecNode(const rclcpp::NodeOptions& node_options,
 
   // 初始化：创建codec & 创建消息的发布者和订阅者
   if (0 != init()) {
-    RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"),
+    RCLCPP_ERROR(this->get_logger(),
       "init fail!");
     rclcpp::shutdown();
     return;
@@ -354,7 +354,7 @@ int HobotCodecNode::init()
   sp_hobot_codec_impl_ = std::make_shared<HobotCodecImpl>();
   int ret = sp_hobot_codec_impl_->Init(sp_hobot_codec_data_info_);
   if (0 != ret) {
-    RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"),
+    RCLCPP_ERROR(this->get_logger(),
       "Hobot codec init fail! ret: %d", ret);
     return ret;
   }
@@ -465,7 +465,7 @@ void HobotCodecNode::in_hbmemh264_topic_cb(
   }
 
   if (!sp_hobot_codec_impl_) {
-    RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"), "Invalid hobot codec impl");
+    RCLCPP_ERROR(this->get_logger(), "Invalid hobot codec impl");
     return;
   }
 
@@ -479,7 +479,7 @@ void HobotCodecNode::in_hbmemh264_topic_cb(
   timestamp_lk.unlock();
 
   if (0 != in_format_.compare(reinterpret_cast<const char*>(msg->encoding.data()))) {
-    RCLCPP_WARN(rclcpp::get_logger("HobotCodecNode"), "[%s]->infmt err %s-%s",
+    RCLCPP_WARN(this->get_logger(), "[%s]->infmt err %s-%s",
       __func__, in_format_.c_str(), msg->encoding.data());
     return;
   }
@@ -507,7 +507,7 @@ void HobotCodecNode::in_hbmemh264_topic_cb(
 
     ss << ", comm delay ms: " << sp_run_time_data->in_comm_delay_
       << ", Input delay ms: " << sp_run_time_data->in_codec_delay_;
-    RCLCPP_INFO(rclcpp::get_logger("HobotCodecNode"), "%s", ss.str().data());
+    RCLCPP_INFO(this->get_logger(), "%s", ss.str().data());
   }
 
 }
@@ -538,7 +538,7 @@ void HobotCodecNode::in_hbmem_topic_cb(
   << "." << msg->time_stamp.nanosec;
 
   if (0 != in_format_.compare(reinterpret_cast<const char*>(msg->encoding.data()))) {
-    RCLCPP_WARN(rclcpp::get_logger("HobotCodecNode"), "Recved img encoding: %s is unmatch with setting: %s",
+    RCLCPP_WARN(this->get_logger(), "Recved img encoding: %s is unmatch with setting: %s",
       msg->encoding.data(), in_format_.c_str());
     return;
   }
@@ -549,7 +549,7 @@ void HobotCodecNode::in_hbmem_topic_cb(
     if (static_cast<int>(sub_frame_output_) >= input_framerate_) {
       sub_frame_output_ -= input_framerate_;
     } else {
-      RCLCPP_INFO(rclcpp::get_logger("HobotCodecNode"),
+      RCLCPP_INFO(this->get_logger(),
                   "[%s]->drop %d, input %d, output %d, %d", __func__,
                   sub_frame_count_, input_framerate_, output_framerate_,
                   sub_frame_output_);
@@ -558,7 +558,7 @@ void HobotCodecNode::in_hbmem_topic_cb(
   }
 
   if (!sp_hobot_codec_impl_) {
-    RCLCPP_ERROR_STREAM(rclcpp::get_logger("HobotCodecNode"), "Invalid codec impl!");
+    RCLCPP_ERROR_STREAM(this->get_logger(), "Invalid codec impl!");
     return;
   }
 #ifndef PLATFORM_X86
@@ -606,7 +606,7 @@ void HobotCodecNode::in_hbmem_topic_cb(
 
   ss << ", comm delay ms: " << sp_run_time_data->in_comm_delay_
     << ", Input delay ms: " << sp_run_time_data->in_codec_delay_;
-  RCLCPP_INFO(rclcpp::get_logger("HobotCodecNode"), "%s", ss.str().data());
+  RCLCPP_INFO(this->get_logger(), "%s", ss.str().data());
 }
 
 void HobotCodecNode::in_ros_h26x_topic_cb(
@@ -616,7 +616,7 @@ void HobotCodecNode::in_ros_h26x_topic_cb(
   }
 
   if (!sp_hobot_codec_impl_) {
-    RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"), "Invalid hobot codec impl");
+    RCLCPP_ERROR(this->get_logger(), "Invalid hobot codec impl");
     return;
   }
 
@@ -640,7 +640,7 @@ void HobotCodecNode::in_ros_h26x_topic_cb(
   << "." << msg->dts.nanosec;
 
   if (0 != in_format_.compare(reinterpret_cast<const char*>(msg->encoding.data()))) {
-    RCLCPP_WARN(rclcpp::get_logger("HobotCodecNode"), "Recved img encoding: %s is unmatch with setting: %s",
+    RCLCPP_WARN(this->get_logger(), "Recved img encoding: %s is unmatch with setting: %s",
       msg->encoding.data(), in_format_.c_str());
     return;
   }
@@ -651,7 +651,7 @@ void HobotCodecNode::in_ros_h26x_topic_cb(
     auto interval = std::chrono::duration_cast<std::chrono::milliseconds>(
                         tp_raw_now - sub_imgraw_tp_).count();
     if (interval >= 1000) {
-      RCLCPP_WARN(rclcpp::get_logger("HobotCodecNode"),
+      RCLCPP_WARN(this->get_logger(),
       "Sub imgRaw fps = %d", sub_imgraw_frameCount_);
       sub_imgraw_frameCount_ = 0;
       sub_imgraw_tp_ = std::chrono::system_clock::now();
@@ -670,20 +670,20 @@ void HobotCodecNode::in_ros_h26x_topic_cb(
 
     ss << ", comm delay ms: " << sp_run_time_data->in_comm_delay_
       << ", Input delay ms: " << sp_run_time_data->in_codec_delay_;
-    RCLCPP_INFO(rclcpp::get_logger("HobotCodecNode"), "%s", ss.str().data());
+    RCLCPP_INFO(this->get_logger(), "%s", ss.str().data());
   }
 
   return;
 }
 
 void HobotCodecNode::in_ros_topic_cb(
-    const sensor_msgs::msg::Image::ConstSharedPtr msg) {
+    sensor_msgs::msg::Image::ConstSharedPtr msg) {
   if (!rclcpp::ok()) {
     return;
   }
   
   if (!sp_hobot_codec_impl_) {
-    RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"), "Invalid hobot codec impl");
+    RCLCPP_ERROR(this->get_logger(), "Invalid hobot codec impl");
     return;
   }
 
@@ -697,7 +697,7 @@ void HobotCodecNode::in_ros_topic_cb(
   timestamp_lk.unlock();
 
   if (0 != in_format_.compare(reinterpret_cast<const char*>(msg->encoding.data()))) {
-    RCLCPP_WARN(rclcpp::get_logger("HobotCodecNode"), "[%s]->infmt err %s-%s",
+    RCLCPP_WARN(this->get_logger(), "[%s]->infmt err %s-%s",
       __func__, in_format_.c_str(), msg->encoding.data());
     return;
   }
@@ -708,7 +708,7 @@ void HobotCodecNode::in_ros_topic_cb(
     auto interval = std::chrono::duration_cast<std::chrono::milliseconds>(
                         tp_raw_now - sub_imgraw_tp_).count();
     if (interval >= 1000) {
-      RCLCPP_WARN(rclcpp::get_logger("HobotCodecNode"),
+      RCLCPP_WARN(this->get_logger(),
       "Sub imgRaw fps = %d", sub_imgraw_frameCount_);
       sub_imgraw_frameCount_ = 0;
       sub_imgraw_tp_ = std::chrono::system_clock::now();
@@ -721,7 +721,7 @@ void HobotCodecNode::in_ros_topic_cb(
     if (static_cast<int>(sub_frame_output_) >= input_framerate_) {
       sub_frame_output_ -= input_framerate_;
     } else {
-      RCLCPP_INFO(rclcpp::get_logger("HobotCodecNode"),
+      RCLCPP_INFO(this->get_logger(),
                   "[%s]->drop %d, input %d, output %d, %d", __func__,
                   sub_frame_count_, input_framerate_, output_framerate_,
                   sub_frame_output_);
@@ -733,7 +733,7 @@ void HobotCodecNode::in_ros_topic_cb(
   if (0 == in_format_.compare("bgr8") || 0 == in_format_.compare("rgb8")) {
     size_t nYuvLen = msg->width * msg->height * 3 / 2;
     if (msg->data.size() != nYuvLen * 2) {
-      RCLCPP_WARN(rclcpp::get_logger("HobotCodecNode"), "[%s]->inlen err %d-%d",
+      RCLCPP_WARN(this->get_logger(), "[%s]->inlen err %d-%d",
         __func__, msg->data.size(), nYuvLen * 2);
       return;
     }
@@ -771,7 +771,7 @@ void HobotCodecNode::in_ros_topic_cb(
 #endif
 
   clock_gettime(CLOCK_REALTIME, &time_end);
-  RCLCPP_INFO(rclcpp::get_logger("HobotCodecNode"), "recved img fmt: %s, w:h: %d:%d, tmlaps: %dms, dLen: %d, laps: %d.",
+  RCLCPP_INFO(this->get_logger(), "recved img fmt: %s, w:h: %d:%d, tmlaps: %dms, dLen: %d, laps: %d.",
     msg->encoding.data(), msg->width, msg->height, tool_calc_time_laps(time_in, time_now),
     msg->data.size(), (time_end.tv_sec * 1000 + time_end.tv_nsec / 1000000) - mNow);
   return;
@@ -784,7 +784,7 @@ void HobotCodecNode::in_ros_compressed_cb(
   }
 
   if (!sp_hobot_codec_impl_) {
-    RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"), "Invalid hobot codec impl");
+    RCLCPP_ERROR(this->get_logger(), "Invalid hobot codec impl");
     return;
   }
 
@@ -798,7 +798,7 @@ void HobotCodecNode::in_ros_compressed_cb(
   get_image_time = mNow;
   timestamp_lk.unlock();
 
-  RCLCPP_INFO_STREAM(rclcpp::get_logger("HobotCodecNode"),
+  RCLCPP_INFO_STREAM(this->get_logger(),
     "Recv compressed img: " << img_msg->format
     // << ", w: " << img_msg->width
     // << ", h: " << img_msg->height
@@ -821,14 +821,14 @@ void HobotCodecNode::timer_ros_pub()
   }
 
   if (!sp_hobot_codec_impl_) {
-    RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"), "Invalid hobot codec impl");
+    RCLCPP_ERROR(this->get_logger(), "Invalid hobot codec impl");
     return;
   }
 
   auto oFrame = sp_hobot_codec_impl_->GetOutput();
   if (!oFrame) {
     if (rclcpp::ok()) {
-      RCLCPP_WARN_STREAM(rclcpp::get_logger("HobotCodecNode"), "GetOutput fail!");
+      RCLCPP_WARN_STREAM(this->get_logger(), "GetOutput fail!");
     }
     return;
   }
@@ -995,7 +995,7 @@ if(oFrame->mPtrData != nullptr)
   RunTimeStat::GetInstance()->Update(sp_run_time_data);
   auto sp_rt_data = RunTimeStat::GetInstance()->Get();
   if (sp_rt_data) {
-    RCLCPP_WARN_STREAM(rclcpp::get_logger("HobotCodecNode"),
+    RCLCPP_WARN_STREAM(this->get_logger(),
     "sub " << in_format_
     << " " << oFrame->mWidth << "x" << oFrame->mHeight
     << ", fps: " << sp_rt_data->in_frame_count_
@@ -1009,7 +1009,7 @@ if(oFrame->mPtrData != nullptr)
 
   ss << ", codec delay ms: "
     << sp_run_time_data->out_codec_delay_;
-  RCLCPP_INFO(rclcpp::get_logger("HobotCodecNode"), "%s", ss.str().data());
+  RCLCPP_INFO(this->get_logger(), "%s", ss.str().data());
 }
 
 void HobotCodecNode::timer_hbmem_pub() {
@@ -1018,14 +1018,14 @@ void HobotCodecNode::timer_hbmem_pub() {
   }
 
   if (!sp_hobot_codec_impl_) {
-    RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"), "Invalid hobot codec impl");
+    RCLCPP_ERROR(this->get_logger(), "Invalid hobot codec impl");
     return;
   }
 
   auto oFrame = sp_hobot_codec_impl_->GetOutput();
   if (!oFrame) {
     if (rclcpp::ok()) {
-      RCLCPP_WARN_STREAM(rclcpp::get_logger("HobotCodecNode"), "GetOutput fail!");
+      RCLCPP_WARN_STREAM(this->get_logger(), "GetOutput fail!");
     }
     return;
   }
@@ -1046,7 +1046,7 @@ void HobotCodecNode::timer_hbmem_pub() {
     }
 
     if (!h264hbmem_publisher_) {
-      RCLCPP_ERROR_STREAM(rclcpp::get_logger("HobotCodecNode"), "Invalid h264hbmem_publisher_!");
+      RCLCPP_ERROR_STREAM(this->get_logger(), "Invalid h264hbmem_publisher_!");
       return;
     }
     auto loanedMsg = h264hbmem_publisher_->borrow_loaned_message();
@@ -1072,11 +1072,11 @@ void HobotCodecNode::timer_hbmem_pub() {
 
       h264hbmem_publisher_->publish(std::move(loanedMsg));
     } else {
-      RCLCPP_WARN(rclcpp::get_logger("HobotCodecNode"), "hbm_h26x borrow_loaned_message failed");
+      RCLCPP_WARN(this->get_logger(), "hbm_h26x borrow_loaned_message failed");
     }
   } else {
     if (!hbmem_publisher_) {
-      RCLCPP_ERROR_STREAM(rclcpp::get_logger("HobotCodecNode"), "Invalid hbmem_publisher_!");
+      RCLCPP_ERROR_STREAM(this->get_logger(), "Invalid hbmem_publisher_!");
       return;
     }
     auto loanedMsg = hbmem_publisher_->borrow_loaned_message();
@@ -1093,11 +1093,11 @@ void HobotCodecNode::timer_hbmem_pub() {
       }
       msg.data_size = oFrame->mDataLen;
       int nOffSet = oFrame->mHeight * oFrame->mWidth;
-      RCLCPP_DEBUG(rclcpp::get_logger("HobotCodecNode"), "mFrameFmt: %d",
+      RCLCPP_DEBUG(this->get_logger(), "mFrameFmt: %d",
       static_cast<int>(oFrame->mFrameFmt));
 #ifndef PLATFORM_X86
       if (CodecImgFormat::FORMAT_INVALID == oFrame->mFrameFmt) {
-        RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"), "Invalid mFrameFmt: %d",
+        RCLCPP_ERROR(this->get_logger(), "Invalid mFrameFmt: %d",
         static_cast<int>(oFrame->mFrameFmt));
         return;
       } else if (CodecImgFormat::FORMAT_NV12 == oFrame->mFrameFmt) {
@@ -1126,7 +1126,7 @@ void HobotCodecNode::timer_hbmem_pub() {
 if(oFrame->mPtrData != nullptr)
 {
   if (CodecImgFormat::FORMAT_INVALID == oFrame->mFrameFmt) {
-  RCLCPP_ERROR(rclcpp::get_logger("HobotCodecNode"), "Invalid mFrameFmt: %d",
+  RCLCPP_ERROR(this->get_logger(), "Invalid mFrameFmt: %d",
   static_cast<int>(oFrame->mFrameFmt));
   return;
   } else if (CodecImgFormat::FORMAT_BGR == oFrame->mFrameFmt) {
@@ -1177,7 +1177,7 @@ if(oFrame->mPtrData != nullptr)
 
       hbmem_publisher_->publish(std::move(loanedMsg));
     } else {
-      RCLCPP_WARN(rclcpp::get_logger("HobotCodecNode"), "borrow_loaned_message failed");
+      RCLCPP_WARN(this->get_logger(), "borrow_loaned_message failed");
     }
   }
   sp_hobot_codec_impl_->ReleaseOutput(oFrame);
@@ -1190,7 +1190,7 @@ if(oFrame->mPtrData != nullptr)
   RunTimeStat::GetInstance()->Update(sp_run_time_data);
   auto sp_rt_data = RunTimeStat::GetInstance()->Get();
   if (sp_rt_data) {
-    RCLCPP_WARN_STREAM(rclcpp::get_logger("HobotCodecNode"),
+    RCLCPP_WARN_STREAM(this->get_logger(),
     "sub " << in_format_
     << " " << oFrame->mWidth << "x" << oFrame->mHeight
     << ", fps: " << sp_rt_data->in_frame_count_
@@ -1204,7 +1204,7 @@ if(oFrame->mPtrData != nullptr)
     
   ss << ", codec delay ms: "
     << sp_run_time_data->out_codec_delay_;
-  RCLCPP_INFO(rclcpp::get_logger("HobotCodecNode"), "%s", ss.str().data());
+  RCLCPP_INFO(this->get_logger(), "%s", ss.str().data());
 }
 
 int RunTimeStat::Update(std::shared_ptr<RunTimeData> sp_run_time_data) {
