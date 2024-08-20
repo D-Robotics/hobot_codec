@@ -835,7 +835,8 @@ void HobotCodecNode::timer_ros_pub()
 
   std::stringstream ss;
   ss << "pub img"
-    << ", index: " << oFrame->sp_frame_info->img_idx_;
+    << ", index: " << oFrame->sp_frame_info->img_idx_
+    << ", topic: " << out_pub_topic_;
 
   if (0 == out_format_.compare("h264") ||
     0 == out_format_.compare("h265") ) {
@@ -892,8 +893,11 @@ void HobotCodecNode::timer_ros_pub()
       compressed_img_pub_->data.size());
     }
 
-    if (ros_compressed_image_publisher_)
+    if (ros_compressed_image_publisher_) {
       ros_compressed_image_publisher_->publish(*compressed_img_pub_);
+      RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+        "publish image topic [%s]", out_pub_topic_.c_str());
+    }
   } else {
     img_pub_->header.stamp.sec = oFrame->sp_frame_info->img_ts_.tv_sec;
     img_pub_->header.stamp.nanosec = oFrame->sp_frame_info->img_ts_.tv_nsec;
