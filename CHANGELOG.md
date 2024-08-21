@@ -1,5 +1,13 @@
 # Changelog for package hobot_codec
 
+tros_2.3.0 (2024-08-21)
+------------------
+1. 支持`RDK X5`平台。
+2. 修复性能评测脚本的问题。性能评测脚本 `hobot_codec_benchmark.launch.py` 中新增表示回灌图片类型的配置 `is_compressed_img_pub` ，解决回灌图片时，订阅的图片格式与发布图片格式不一致的问题。
+3. 新增将`node`编译成`component`的功能，支持动态加载`node`和进程内零拷贝通信。
+4. `launch`启动脚本中支持设置`log`级别。
+5. 修复`jpeg quality`设置无效的问题。
+
 tros_2.2.0 (2024-04-01)
 ------------------
 1. 适配ros2 humble零拷贝。
