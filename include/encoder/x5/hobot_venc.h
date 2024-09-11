@@ -18,8 +18,8 @@
 
 #include "include/hobot_codec_base.h"
 
-#include "libmm/hb_media_codec.h" 
-#include "libmm/hb_media_error.h" 
+#include "hb_media_codec.h" 
+#include "hb_media_error.h" 
  
 #ifndef INCLUDE_HOBOT_VENC_H_
 #define INCLUDE_HOBOT_VENC_H_
