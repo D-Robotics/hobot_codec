@@ -47,8 +47,8 @@ enum class CodecImgFormat {
 
 // 数据帧信息
 struct FrameInfo {
-  FrameInfo(uint64_t img_idx, struct timespec img_ts, struct timespec img_recved_ts) :
-    img_idx_(img_idx), img_ts_(img_ts), img_recved_ts_(img_recved_ts)
+  FrameInfo(uint64_t img_idx, struct timespec img_ts, struct timespec img_recved_ts, std::string frame_id = "") :
+    img_idx_(img_idx), img_ts_(img_ts), img_recved_ts_(img_recved_ts), frame_id_(frame_id)
   {}
 
   // 编号
@@ -59,6 +59,8 @@ struct FrameInfo {
   struct timespec img_recved_ts_;
   // codec处理完成时刻的时间戳
   struct timespec img_processed_ts_;
+  // 订阅到的图片的frame_id
+  std::string frame_id_ = "default_cam";
 };
 
 // 输出数据

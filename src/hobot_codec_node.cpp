@@ -74,7 +74,7 @@ int IsType(const char* tsType, const std::vector<const char*>& fmtTypes)
   int nArrLen = fmtTypes.size();
   for (int nIdx = 0; nIdx < nArrLen; ++nIdx) {
     RCLCPP_DEBUG(rclcpp::get_logger("HobotCodecNode"),
-      "[IsType]->in %s - %d, %s - %d",
+      "[IsType]->in %s - %ld, %s - %ld",
       tsType, strlen(tsType), fmtTypes[nIdx], strlen(fmtTypes[nIdx]));
     if (0 == strcmp(tsType, fmtTypes[nIdx]))
       return 1;
@@ -550,7 +550,7 @@ void HobotCodecNode::in_hbmem_topic_cb(
       sub_frame_output_ -= input_framerate_;
     } else {
       RCLCPP_INFO(this->get_logger(),
-                  "[%s]->drop %d, input %d, output %d, %d", __func__,
+                  "[%s]->drop %ld, input %d, output %d, %ld", __func__,
                   sub_frame_count_, input_framerate_, output_framerate_,
                   sub_frame_output_);
       return;
@@ -722,7 +722,7 @@ void HobotCodecNode::in_ros_topic_cb(
       sub_frame_output_ -= input_framerate_;
     } else {
       RCLCPP_INFO(this->get_logger(),
-                  "[%s]->drop %d, input %d, output %d, %d", __func__,
+                  "[%s]->drop %ld, input %d, output %d, %ld", __func__,
                   sub_frame_count_, input_framerate_, output_framerate_,
                   sub_frame_output_);
       return;
@@ -733,7 +733,7 @@ void HobotCodecNode::in_ros_topic_cb(
   if (0 == in_format_.compare("bgr8") || 0 == in_format_.compare("rgb8")) {
     size_t nYuvLen = msg->width * msg->height * 3 / 2;
     if (msg->data.size() != nYuvLen * 2) {
-      RCLCPP_WARN(this->get_logger(), "[%s]->inlen err %d-%d",
+      RCLCPP_WARN(this->get_logger(), "[%s]->inlen err %ld-%ld",
         __func__, msg->data.size(), nYuvLen * 2);
       return;
     }
@@ -745,10 +745,10 @@ void HobotCodecNode::in_ros_topic_cb(
       video_utils::RGB24_to_NV12(msg->data.data(), mPtrIn, msg->width, msg->height);
     }
     sp_hobot_codec_impl_->Input(mPtrIn, msg->width, msg->height, nYuvLen,
-      std::make_shared<FrameInfo>(0, time_in, time_now));
+      std::make_shared<FrameInfo>(0, time_in, time_now, msg->header.frame_id));
   } else {
     sp_hobot_codec_impl_->Input(msg->data.data(), msg->width, msg->height, msg->data.size(),
-      std::make_shared<FrameInfo>(0, time_in, time_now));
+      std::make_shared<FrameInfo>(0, time_in, time_now, msg->header.frame_id));
   }
 
 #else
@@ -759,19 +759,19 @@ void HobotCodecNode::in_ros_topic_cb(
   //opencv编码输入类型为BGR格式
   if (0 == in_format_.compare("rgb8") && mPtrIn) {
     video_utils::RGB24_to_BGR24(msg->data.data(), mPtrIn, msg->width, msg->height);
-    sp_hobot_codec_impl_->Input(mPtrIn, msg->width, msg->height, msg->width * msg->height * 3, std::make_shared<FrameInfo>(0, time_in, time_now));
+    sp_hobot_codec_impl_->Input(mPtrIn, msg->width, msg->height, msg->width * msg->height * 3, std::make_shared<FrameInfo>(0, time_in, time_now, msg->header.frame_id));
   } else if (0 == in_format_.compare("nv12")) {
     video_utils::NV12_to_BGR24(msg->data.data(), mPtrIn, msg->width, msg->height);
-    sp_hobot_codec_impl_->Input(mPtrIn, msg->width, msg->height, msg->width * msg->height * 3 / 2, std::make_shared<FrameInfo>(0, time_in, time_now));
+    sp_hobot_codec_impl_->Input(mPtrIn, msg->width, msg->height, msg->width * msg->height * 3 / 2, std::make_shared<FrameInfo>(0, time_in, time_now, msg->header.frame_id));
   } else {
     //jpeg的解码以及BGR8的编码调用该接口
-    sp_hobot_codec_impl_->Input(msg->data.data(), msg->width, msg->height, msg->data.size(), std::make_shared<FrameInfo>(0, time_in, time_now));    
+    sp_hobot_codec_impl_->Input(msg->data.data(), msg->width, msg->height, msg->data.size(), std::make_shared<FrameInfo>(0, time_in, time_now, msg->header.frame_id));    
   }
 
 #endif
 
   clock_gettime(CLOCK_REALTIME, &time_end);
-  RCLCPP_INFO(this->get_logger(), "recved img fmt: %s, w:h: %d:%d, tmlaps: %dms, dLen: %d, laps: %d.",
+  RCLCPP_INFO(this->get_logger(), "recved img fmt: %s, w:h: %d:%d, tmlaps: %dms, dLen: %ld, laps: %ld.",
     msg->encoding.data(), msg->width, msg->height, tool_calc_time_laps(time_in, time_now),
     msg->data.size(), (time_end.tv_sec * 1000 + time_end.tv_nsec / 1000000) - mNow);
   return;
@@ -810,7 +810,7 @@ void HobotCodecNode::in_ros_compressed_cb(
 
   // TODO 20230117 使用实际的分辨率
   sp_hobot_codec_impl_->Input(img_msg->data.data(), 1920, 1080, img_msg->data.size(),
-    std::make_shared<FrameInfo>(0, time_in, time_now));
+    std::make_shared<FrameInfo>(0, time_in, time_now, img_msg->header.frame_id));
 }
 // static struct timespec time_last;
 // codec dec 和 enc 是不一样的接口？
@@ -871,7 +871,7 @@ void HobotCodecNode::timer_ros_pub()
   } else if (0 == out_format_.compare("jpeg")) {
     compressed_img_pub_->header.stamp.sec = oFrame->sp_frame_info->img_ts_.tv_sec;
     compressed_img_pub_->header.stamp.nanosec = oFrame->sp_frame_info->img_ts_.tv_nsec;
-    compressed_img_pub_->header.frame_id = "default_cam";
+    compressed_img_pub_->header.frame_id = oFrame->sp_frame_info->frame_id_;
     compressed_img_pub_->format = "jpeg";
 
     compressed_img_pub_->data.resize(oFrame->mDataLen);
@@ -901,7 +901,7 @@ void HobotCodecNode::timer_ros_pub()
   } else {
     img_pub_->header.stamp.sec = oFrame->sp_frame_info->img_ts_.tv_sec;
     img_pub_->header.stamp.nanosec = oFrame->sp_frame_info->img_ts_.tv_nsec;
-    img_pub_->header.frame_id = "default_cam";
+    img_pub_->header.frame_id = oFrame->sp_frame_info->frame_id_;
     img_pub_->width = oFrame->mWidth;
     img_pub_->height = oFrame->mHeight;
     img_pub_->step = oFrame->mWidth;
