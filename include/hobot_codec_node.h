@@ -141,6 +141,8 @@ class HobotCodecNode : public rclcpp::Node {
   uint64_t sub_frame_output_ = 0;
   int input_framerate_ = 30;
   int output_framerate_ = -1;
+  std::queue<std::chrono::high_resolution_clock::time_point> pub_time_q_;
+  int frame_interval_t_;
 
   uint64_t get_image_time = 0; //获取image时间
   std::mutex timestamp_mtx;
