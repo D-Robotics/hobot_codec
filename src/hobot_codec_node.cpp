@@ -242,6 +242,7 @@ void HobotCodecNode::check_params()
     "Invalid output_framerate: %d! The output_framerate must be a positive integer or '-1'! "
     "Use '-1' instead!", output_framerate_);
     output_framerate_ = -1;
+
   }
   if (output_framerate_ > input_framerate_) {
     RCLCPP_ERROR(this->get_logger(),
@@ -251,6 +252,11 @@ void HobotCodecNode::check_params()
     output_framerate_);
     rclcpp::shutdown();
     return;
+  }
+  if (output_framerate_ == -1) {
+    frame_interval_t_ = -1;
+  } else {
+    frame_interval_t_ = 1000 / output_framerate_;
   }
 }
 
@@ -899,6 +905,21 @@ void HobotCodecNode::timer_ros_pub()
         "publish image topic [%s]", out_pub_topic_.c_str());
     }
   } else {
+    if (frame_interval_t_ > 0) {
+      auto tp = std::chrono::system_clock::now();
+      if (pub_time_q_.size() > 0) {
+        auto itm = pub_time_q_.front();
+        auto interval = std::chrono::duration_cast<std::chrono::milliseconds>(tp - itm).count();
+        if (interval < frame_interval_t_ * pub_time_q_.size()) {
+          sp_hobot_codec_impl_->ReleaseOutput(oFrame);
+          return;
+        }
+      }
+      pub_time_q_.push(tp);
+      if (pub_time_q_.size() > 100) {
+        pub_time_q_.pop();
+      }
+    } 
     img_pub_->header.stamp.sec = oFrame->sp_frame_info->img_ts_.tv_sec;
     img_pub_->header.stamp.nanosec = oFrame->sp_frame_info->img_ts_.tv_nsec;
     img_pub_->header.frame_id = "default_cam";
@@ -937,35 +958,35 @@ void HobotCodecNode::timer_ros_pub()
     }
 
 #else
-if(oFrame->mPtrData != nullptr)
-{
-  if (CodecImgFormat::FORMAT_BGR == oFrame->mFrameFmt) {
-    int rgbLen = oFrame->mHeight * oFrame->mWidth * 3;
-    if (0 == out_format_.compare("rgb8") ) {
-      if (nullptr == mPtrOut) {
-        mPtrOut = new uint8_t[rgbLen];
+  if(oFrame->mPtrData != nullptr)
+  {
+    if (CodecImgFormat::FORMAT_BGR == oFrame->mFrameFmt) {
+      int rgbLen = oFrame->mHeight * oFrame->mWidth * 3;
+      if (0 == out_format_.compare("rgb8") ) {
+        if (nullptr == mPtrOut) {
+          mPtrOut = new uint8_t[rgbLen];
+        }
+        video_utils::BGR24_to_RGB24(oFrame->mPtrData, mPtrOut, oFrame->mWidth,oFrame->mHeight);
+        img_pub_->data.resize(rgbLen);
+        memcpy(&img_pub_->data[0], mPtrOut, rgbLen);
+      } else if (0 == out_format_.compare("nv12")) {
+        int nv12Len = oFrame->mHeight * oFrame->mWidth * 3 / 2;
+        if (nullptr == mPtrOut) {
+          mPtrOut = new uint8_t[nv12Len];
+        }
+        video_utils::BGR24_to_NV12(oFrame->mPtrData, mPtrOut, oFrame->mWidth, oFrame->mHeight);
+        img_pub_->data.resize(nv12Len);
+        memcpy(&img_pub_->data[0], mPtrOut, nv12Len);
+      } else {
+        img_pub_->data.resize(oFrame->mDataLen);
+        memcpy(&img_pub_->data[0], oFrame->mPtrData, oFrame->mDataLen);
       }
-      video_utils::BGR24_to_RGB24(oFrame->mPtrData, mPtrOut, oFrame->mWidth,oFrame->mHeight);
-      img_pub_->data.resize(rgbLen);
-      memcpy(&img_pub_->data[0], mPtrOut, rgbLen);
-    } else if (0 == out_format_.compare("nv12")) {
-      int nv12Len = oFrame->mHeight * oFrame->mWidth * 3 / 2;
-      if (nullptr == mPtrOut) {
-        mPtrOut = new uint8_t[nv12Len];
-      }
-      video_utils::BGR24_to_NV12(oFrame->mPtrData, mPtrOut, oFrame->mWidth, oFrame->mHeight);
-      img_pub_->data.resize(nv12Len);
-      memcpy(&img_pub_->data[0], mPtrOut, nv12Len);
     } else {
       img_pub_->data.resize(oFrame->mDataLen);
       memcpy(&img_pub_->data[0], oFrame->mPtrData, oFrame->mDataLen);
+      
     }
-  } else {
-    img_pub_->data.resize(oFrame->mDataLen);
-    memcpy(&img_pub_->data[0], oFrame->mPtrData, oFrame->mDataLen);
-    
   }
-}
 #endif
     ss << ", encoding: " << img_pub_->encoding
     << ", w: " << img_pub_->width
@@ -989,8 +1010,6 @@ if(oFrame->mPtrData != nullptr)
       ros_image_publisher_->publish(*img_pub_);
   }
 
-  sp_hobot_codec_impl_->ReleaseOutput(oFrame);
-
   auto sp_run_time_data = std::make_shared<RunTimeData>();
   sp_run_time_data->out_frame_count_ = 1;
   sp_run_time_data->out_codec_delay_ =
@@ -1010,6 +1029,7 @@ if(oFrame->mPtrData != nullptr)
     << ", codec delay [" << sp_rt_data->out_codec_delay_ << "]ms"
     );
   }
+  sp_hobot_codec_impl_->ReleaseOutput(oFrame);
 
   ss << ", codec delay ms: "
     << sp_run_time_data->out_codec_delay_;
@@ -1083,6 +1103,21 @@ void HobotCodecNode::timer_hbmem_pub() {
       RCLCPP_ERROR_STREAM(this->get_logger(), "Invalid hbmem_publisher_!");
       return;
     }
+    if (frame_interval_t_ > 0) {
+      auto tp = std::chrono::system_clock::now();
+      if (pub_time_q_.size() > 0) {
+        auto itm = pub_time_q_.front();
+        auto interval = std::chrono::duration_cast<std::chrono::milliseconds>(tp - itm).count();
+        if (interval < frame_interval_t_ * pub_time_q_.size()) {
+          sp_hobot_codec_impl_->ReleaseOutput(oFrame);
+          return;
+        }
+      }
+      pub_time_q_.push(tp);
+      if (pub_time_q_.size() > 100) {
+        pub_time_q_.pop();
+      }
+    } 
     auto loanedMsg = hbmem_publisher_->borrow_loaned_message();
     if (loanedMsg.is_valid()) {
       auto& msg = loanedMsg.get();
@@ -1184,7 +1219,6 @@ if(oFrame->mPtrData != nullptr)
       RCLCPP_WARN(this->get_logger(), "borrow_loaned_message failed");
     }
   }
-  sp_hobot_codec_impl_->ReleaseOutput(oFrame);
   
   auto sp_run_time_data = std::make_shared<RunTimeData>();
   sp_run_time_data->out_frame_count_ = 1;
@@ -1205,6 +1239,7 @@ if(oFrame->mPtrData != nullptr)
     << ", codec delay [" << sp_rt_data->out_codec_delay_ << "]ms"
     );
   }
+  sp_hobot_codec_impl_->ReleaseOutput(oFrame);
     
   ss << ", codec delay ms: "
     << sp_run_time_data->out_codec_delay_;
