@@ -86,6 +86,7 @@ def generate_launch_description():
         Node(
             package='hobot_codec',
             executable='hobot_codec_republish',
+            name='hobot_codec_encoder',
             output='screen',
             parameters=[
                 {"channel": LaunchConfiguration('codec_channel')},
