@@ -656,9 +656,9 @@ void HobotCodecNode::in_ros_h26x_topic_cb(
     sub_imgraw_frameCount_++;
     auto interval = std::chrono::duration_cast<std::chrono::milliseconds>(
                         tp_raw_now - sub_imgraw_tp_).count();
-    if (interval >= 1000) {
+    if (interval >= 5000) {
       RCLCPP_WARN(this->get_logger(),
-      "Sub imgRaw fps = %d", sub_imgraw_frameCount_);
+      "Sub imgRaw fps = %d", sub_imgraw_frameCount_ / (interval / 1000.0));
       sub_imgraw_frameCount_ = 0;
       sub_imgraw_tp_ = std::chrono::system_clock::now();
     }
@@ -713,9 +713,9 @@ void HobotCodecNode::in_ros_topic_cb(
     sub_imgraw_frameCount_++;
     auto interval = std::chrono::duration_cast<std::chrono::milliseconds>(
                         tp_raw_now - sub_imgraw_tp_).count();
-    if (interval >= 1000) {
+    if (interval >= 5000) {
       RCLCPP_WARN(this->get_logger(),
-      "Sub imgRaw fps = %d", sub_imgraw_frameCount_);
+      "Sub imgRaw fps = %d", sub_imgraw_frameCount_ / (interval / 1000.0));
       sub_imgraw_frameCount_ = 0;
       sub_imgraw_tp_ = std::chrono::system_clock::now();
     }
@@ -1018,7 +1018,7 @@ void HobotCodecNode::timer_ros_pub()
   RunTimeStat::GetInstance()->Update(sp_run_time_data);
   auto sp_rt_data = RunTimeStat::GetInstance()->Get();
   if (sp_rt_data) {
-    RCLCPP_WARN_STREAM(this->get_logger(),
+    RCLCPP_WARN_STREAM_THROTTLE(this->get_logger(), *this->get_clock(), 5000,
     "sub " << in_format_
     << " " << oFrame->mWidth << "x" << oFrame->mHeight
     << ", fps: " << sp_rt_data->in_frame_count_
