@@ -135,6 +135,8 @@ class HobotCodecNode : public rclcpp::Node {
 
   std::chrono::high_resolution_clock::time_point sub_imgraw_tp_;
   int sub_imgraw_frameCount_ = 0;
+  std::chrono::high_resolution_clock::time_point pub_imgraw_tp_;
+  int pub_imgraw_frameCount_ = 0;
   std::mutex frame_statraw_mtx_;
 
   uint64_t sub_frame_count_ = 0;

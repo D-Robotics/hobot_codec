@@ -450,6 +450,9 @@ int HobotCodecNode::init()
   // 创建发布线程
   m_spThrdPub = std::make_shared<std::thread>(
     std::bind(&HobotCodecNode::exec_loopPub, this, is_sharedmem_pub));
+
+  pub_imgraw_tp_ = std::chrono::system_clock::now();
+  sub_imgraw_tp_ = std::chrono::system_clock::now();
   return 0;
 }
 
@@ -658,7 +661,8 @@ void HobotCodecNode::in_ros_h26x_topic_cb(
                         tp_raw_now - sub_imgraw_tp_).count();
     if (interval >= 5000) {
       RCLCPP_WARN(this->get_logger(),
-      "Sub imgRaw fps = %d", sub_imgraw_frameCount_ / (interval / 1000.0));
+      "Sub imgRaw fps [%.2f]",
+      sub_imgraw_frameCount_ / (interval / 1000.0));
       sub_imgraw_frameCount_ = 0;
       sub_imgraw_tp_ = std::chrono::system_clock::now();
     }
@@ -715,7 +719,8 @@ void HobotCodecNode::in_ros_topic_cb(
                         tp_raw_now - sub_imgraw_tp_).count();
     if (interval >= 5000) {
       RCLCPP_WARN(this->get_logger(),
-      "Sub imgRaw fps = %d", sub_imgraw_frameCount_ / (interval / 1000.0));
+      "Sub imgRaw fps [%.2f]",
+      sub_imgraw_frameCount_ / (interval / 1000.0));
       sub_imgraw_frameCount_ = 0;
       sub_imgraw_tp_ = std::chrono::system_clock::now();
     }
@@ -874,6 +879,20 @@ void HobotCodecNode::timer_ros_pub()
       << "." << frameh26x_sub_->dts.nanosec;
 
     ros_h26ximage_publisher_->publish(*frameh26x_sub_);
+    {
+      auto tp_raw_now = std::chrono::system_clock::now();
+      std::unique_lock<std::mutex> lk(frame_statraw_mtx_);
+      pub_imgraw_frameCount_++;
+      auto interval = std::chrono::duration_cast<std::chrono::milliseconds>(
+                          tp_raw_now - pub_imgraw_tp_).count();
+      if (interval >= 5000) {
+        RCLCPP_WARN(this->get_logger(),
+        "Pub img fps [%.2f]",
+        pub_imgraw_frameCount_ / (interval / 1000.0));
+        pub_imgraw_frameCount_ = 0;
+        pub_imgraw_tp_ = std::chrono::system_clock::now();
+      }
+    }
   } else if (0 == out_format_.compare("jpeg")) {
     compressed_img_pub_->header.stamp.sec = oFrame->sp_frame_info->img_ts_.tv_sec;
     compressed_img_pub_->header.stamp.nanosec = oFrame->sp_frame_info->img_ts_.tv_nsec;
@@ -903,6 +922,20 @@ void HobotCodecNode::timer_ros_pub()
       ros_compressed_image_publisher_->publish(*compressed_img_pub_);
       RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
         "publish image topic [%s]", out_pub_topic_.c_str());
+      {
+        auto tp_raw_now = std::chrono::system_clock::now();
+        std::unique_lock<std::mutex> lk(frame_statraw_mtx_);
+        pub_imgraw_frameCount_++;
+        auto interval = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            tp_raw_now - pub_imgraw_tp_).count();
+        if (interval >= 5000) {
+          RCLCPP_WARN(this->get_logger(),
+          "Pub img fps [%.2f]",
+          pub_imgraw_frameCount_ / (interval / 1000.0));
+          pub_imgraw_frameCount_ = 0;
+          pub_imgraw_tp_ = std::chrono::system_clock::now();
+        }
+      }
     }
   } else {
     if (frame_interval_t_ > 0) {
@@ -1006,8 +1039,23 @@ void HobotCodecNode::timer_ros_pub()
       img_pub_->data.size());
     }
 
-    if (ros_image_publisher_)
+    if (ros_image_publisher_) {
       ros_image_publisher_->publish(*img_pub_);
+      {
+        auto tp_raw_now = std::chrono::system_clock::now();
+        std::unique_lock<std::mutex> lk(frame_statraw_mtx_);
+        pub_imgraw_frameCount_++;
+        auto interval = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            tp_raw_now - pub_imgraw_tp_).count();
+        if (interval >= 5000) {
+          RCLCPP_WARN(this->get_logger(),
+          "Pub img fps [%.2f]",
+          pub_imgraw_frameCount_ / (interval / 1000.0));
+          pub_imgraw_frameCount_ = 0;
+          pub_imgraw_tp_ = std::chrono::system_clock::now();
+        }
+      }
+    }
   }
 
   auto sp_run_time_data = std::make_shared<RunTimeData>();
@@ -1095,6 +1143,20 @@ void HobotCodecNode::timer_hbmem_pub() {
       << "." << msg.dts.nanosec;
 
       h264hbmem_publisher_->publish(std::move(loanedMsg));
+      {
+        auto tp_raw_now = std::chrono::system_clock::now();
+        std::unique_lock<std::mutex> lk(frame_statraw_mtx_);
+        pub_imgraw_frameCount_++;
+        auto interval = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            tp_raw_now - pub_imgraw_tp_).count();
+        if (interval >= 5000) {
+          RCLCPP_WARN(this->get_logger(),
+          "Pub img fps [%.2f]",
+          pub_imgraw_frameCount_ / (interval / 1000.0));
+          pub_imgraw_frameCount_ = 0;
+          pub_imgraw_tp_ = std::chrono::system_clock::now();
+        }
+      }
     } else {
       RCLCPP_WARN(this->get_logger(), "hbm_h26x borrow_loaned_message failed");
     }
@@ -1215,6 +1277,20 @@ if(oFrame->mPtrData != nullptr)
       }
 
       hbmem_publisher_->publish(std::move(loanedMsg));
+      {
+        auto tp_raw_now = std::chrono::system_clock::now();
+        std::unique_lock<std::mutex> lk(frame_statraw_mtx_);
+        pub_imgraw_frameCount_++;
+        auto interval = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            tp_raw_now - pub_imgraw_tp_).count();
+        if (interval >= 5000) {
+          RCLCPP_WARN(this->get_logger(),
+          "Pub img fps [%.2f]",
+          pub_imgraw_frameCount_ / (interval / 1000.0));
+          pub_imgraw_frameCount_ = 0;
+          pub_imgraw_tp_ = std::chrono::system_clock::now();
+        }
+      }
     } else {
       RCLCPP_WARN(this->get_logger(), "borrow_loaned_message failed");
     }
