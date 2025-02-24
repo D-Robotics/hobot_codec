@@ -30,6 +30,8 @@ HobotCodecImpl::HobotCodecImpl() {
   platform = "platform x3";
 #elif defined(PLATFORM_X5)
   platform = "platform x5";
+#elif defined(PLATFORM_S100)
+  platform = "platform s100";
 #else
   #ifdef PLATFORM_Rdkultra
     platform = "platform rdkultra";
