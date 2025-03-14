@@ -94,8 +94,8 @@ if(PLATFORM_X5)
   )
 elseif(PLATFORM_S100)
   include_directories(
-    /usr/hobot/include/
-    /usr/hobot/include/libmm
+    ${CMAKE_SYSROOT}/usr/hobot/include/
+    ${CMAKE_SYSROOT}/usr/hobot/include/libmm
   )
   link_directories(
     ${CMAKE_SYSROOT}/usr/hobot/lib
