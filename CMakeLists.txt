@@ -65,6 +65,10 @@ elseif(PLATFORM_X5)
   message("build platform X5")
   add_definitions(-DPLATFORM_X5)
   set(PREFIX_PATH x5)
+elseif(PLATFORM_S100)
+  message("build platform S100")
+  add_definitions(-DPLATFORM_S100)
+  set(PREFIX_PATH x5)
 else()
   message("invalid platform, build platform X3 default")
   add_definitions(-DPLATFORM_X3)
@@ -88,18 +92,26 @@ if(PLATFORM_X5)
   link_directories(
     ${CMAKE_SYSROOT}/usr/hobot/lib
   )
+elseif(PLATFORM_S100)
+  include_directories(
+    ${CMAKE_SYSROOT}/usr/hobot/include/
+    ${CMAKE_SYSROOT}/usr/hobot/include/libmm
+  )
+  link_directories(
+    ${CMAKE_SYSROOT}/usr/hobot/lib
+  )
 endif()
 
 set(BASE_LIBRARIES pthread dl)
 # 根据平台选择需要链接的库
 if(PLATFORM_X3)
   set(SYS_LIB vio isp_algo z hbmedia isp ion multimedia iar tinyalsa cjson)
-elseif(PLATFORM_Rdkultra)
-  set(SYS_LIB multimedia)
 elseif(PLATFORM_X86)
   set(SYS_LIB ${OpenCV_LIBS})
-elseif(PLATFORM_X5)
+elseif(PLATFORM_Rdkultra OR PLATFORM_X5)
   set(SYS_LIB multimedia)
+elseif(PLATFORM_S100)
+  set(SYS_LIB )
 else()
   message("link platform X3 libs default")
   set(SYS_LIB vio isp_algo z hbmedia isp ion multimedia iar tinyalsa cjson)
