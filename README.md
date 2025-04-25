@@ -280,7 +280,7 @@ ros2 run hobot_codec hobot_codec_republish --ros-args -p channel:=1 -p in_mode:=
 
 | Type  | Input Format | Output Format | Execution Command |
 | ----  | ------------ | ------------ | ----------------- |
-| Decode | JPEG        | NV12         | ros2 launch hobot_codec hobot_codec_benchmark.launch.py image_source:=1920x1080.jpeg image_format:=jpeg codec_in_format:=jpeg codec_out_format:=nv12 |
+| Decode | JPEG        | NV12         | ros2 launch hobot_codec hobot_codec_benchmark.launch.py image_source:=1920x1080.jpeg image_format:=jpeg codec_in_format:=jpeg codec_out_format:=nv12 is_compressed_img_pub:=true |
 | Decode | H264        | NV12         | ros2 launch hobot_codec hobot_codec_benchmark.launch.py image_source:=1920x1080.h264 image_format:=h264 codec_in_format:=h264 codec_out_format:=nv12 |
 | Decode | H265        | NV12         | ros2 launch hobot_codec hobot_codec_benchmark.launch.py image_source:=1920x1080.h265 image_format:=h265 codec_in_format:=h265 codec_out_format:=nv12 |
 | Encode | NV12        | JPEG         | ros2 launch hobot_codec hobot_codec_benchmark.launch.py image_source:=1920x1080.nv12 image_format:=nv12 codec_in_format:=nv12 codec_out_format:=jpeg |
