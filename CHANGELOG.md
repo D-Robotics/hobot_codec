@@ -4,6 +4,7 @@ tros_2.3.4 (To be Released)
 ------------------
 1. 删除无效的配置参数`enc_qp`。
 2. 增加配置参数`dump_frame_count`，用于控制保存的编解码帧数。
+3. 增加启动脚本`hobot_mipi_encoder_component.launch.py`，使用`component_container`加载`mipi_cam`和`hobot_codec` node。
 
 tros_2.3.3 (2025-05-08)
 ------------------
