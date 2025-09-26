@@ -51,7 +51,7 @@ def generate_launch_description():
     # mipi cam图片发布pkg
     mipi_cam_device_arg = DeclareLaunchArgument(
         'device',
-        default_value='F37',
+        default_value='',
         description='mipi camera device')
         
     load_composable_nodes = LoadComposableNodes(
@@ -87,7 +87,8 @@ def generate_launch_description():
                     {"jpg_quality": LaunchConfiguration('codec_jpg_quality')},
                     {"input_framerate": LaunchConfiguration('codec_input_framerate')},
                     {"output_framerate": LaunchConfiguration('codec_output_framerate')},
-                    {"dump_output": LaunchConfiguration('codec_dump_output')}
+                    {"dump_output": LaunchConfiguration('codec_dump_output')},
+                    {"dump_frame_count": LaunchConfiguration('codec_dump_frame_count')}
                 ],
                 extra_arguments=[{'use_intra_process_comms': True}],
             )
@@ -156,6 +157,10 @@ def generate_launch_description():
             'codec_dump_output',
             default_value='False',
             description='Dump codec output configuration'),
+        DeclareLaunchArgument(
+            'codec_dump_frame_count',
+            default_value='0',
+            description='Dump codec output frame count, <=0 means unlimited'),
         DeclareLaunchArgument(
             'log_level',
             default_value='warn',

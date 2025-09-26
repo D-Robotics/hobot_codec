@@ -124,7 +124,7 @@ source ./install/local_setup.sh
 ros2 run hobot_codec hobot_codec_republish
 ```
 
-### 目前参数列表
+### 参数列表
 
 | 参数名           | 含义                         | 取值                                          | 默认值                |
 | ---------------- | ---------------------------- | --------------------------------------------- | --------------------- |
@@ -213,6 +213,8 @@ ros2 run hobot_image_publisher hobot_image_pub --ros-args -p image_source:=./con
 
 ### 运行方式2，使用launch文件启动
 
+1. 使用零拷贝通信，分别启动MIPI摄像头和编码器：
+
 ```shell
 source /opt/tros/setup.bash
 
@@ -223,6 +225,13 @@ ros2 launch mipi_cam mipi_cam.launch.py mipi_video_device:=F37
 source /opt/tros/setup.bash
 
 ros2 launch hobot_codec hobot_codec.launch.py codec_in_mode:=shared_mem codec_in_format:=nv12 codec_out_mode:=ros codec_out_format:=jpeg codec_sub_topic:=/hbmem_img codec_pub_topic:=/image_jpeg
+```
+
+2. 使用`component_container`加载`mipi_cam`和`hobot_codec` node：
+
+```shell
+source /opt/tros/setup.bash
+ros2 launch hobot_codec hobot_mipi_encoder_component.launch.py
 ```
 
 ## X3 linaro系统

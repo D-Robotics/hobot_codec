@@ -150,7 +150,7 @@ void HobotCodecNode::get_params()
     << "\n\t  input_framerate: " << input_framerate_
     << "\n\t output_framerate: " << output_framerate_
     << "\n\t      dump_output: " << (dump_output_ ? "true" : "false")
-    << "\n\t dump_frame_count: " << dump_frame_count_
+    << "\n\t dump_frame_count: " << dump_frame_count_ << (dump_frame_count_ <= 0 ? " (unlimited)" : "")
   );
 }
 
