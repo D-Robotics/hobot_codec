@@ -1,5 +1,10 @@
 # Changelog for package hobot_codec
 
+tros_2.3.4 (To be Released)
+------------------
+1. 删除无效的配置参数`enc_qp`。
+2. 增加配置参数`dump_frame_count`，用于控制保存的编解码帧数。
+
 tros_2.3.3 (2025-05-08)
 ------------------
 1. 支持`RDK S100`平台。

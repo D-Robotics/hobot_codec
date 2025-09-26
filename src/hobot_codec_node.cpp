@@ -88,8 +88,8 @@ void HobotCodecNode::get_params()
   auto parameters_client = std::make_shared<rclcpp::SyncParametersClient>(this);
   for (auto &parameter : parameters_client->get_parameters(
            {"sub_topic", "pub_topic", "channel", "in_mode", "out_mode",
-            "in_format", "out_format", "enc_qp", "jpg_quality",
-            "input_framerate", "output_framerate", "dump_output"})) {
+            "in_format", "out_format", "jpg_quality",
+            "input_framerate", "output_framerate", "dump_output", "dump_frame_count"})) {
     if (parameter.get_name() == "sub_topic") {
       RCLCPP_INFO(this->get_logger(),
         "sub_topic value: %s", parameter.value_to_string().c_str());
@@ -100,13 +100,9 @@ void HobotCodecNode::get_params()
       in_mode_ = parameter.value_to_string();
     } else if (parameter.get_name() == "out_mode") {
       out_mode_ = parameter.value_to_string();
-    } else if (parameter.get_name() == "enc_qp") {
-      RCLCPP_INFO(this->get_logger(),
-        "enc_qp: %f", parameter.as_double());
-      enc_qp_ = parameter.as_double();
     } else if (parameter.get_name() == "jpg_quality") {
       RCLCPP_INFO(this->get_logger(),
-        "jpg_quality: %f", parameter.as_double());
+        "jpg_quality: %.2f", parameter.as_double());
       jpg_quality_ = parameter.as_double();
     } else if (parameter.get_name() == "in_format") {
       in_format_ = parameter.value_to_string();
@@ -132,6 +128,8 @@ void HobotCodecNode::get_params()
       dump_output_ = parameter.as_bool();
       RCLCPP_INFO(this->get_logger(),
         "dump_output_ value: %d, file: %s", dump_output_, dump_output_file_.data());
+    } else if (parameter.get_name() == "dump_frame_count") {
+      dump_frame_count_ = parameter.as_int();
     } else {
       RCLCPP_WARN(this->get_logger(),
         "Invalid parameter name: %s", parameter.get_name().c_str());
@@ -140,18 +138,19 @@ void HobotCodecNode::get_params()
 
   RCLCPP_WARN_STREAM(this->get_logger(),
     "Parameters:"
-    << "\nsub_topic: " << in_sub_topic_
-    << "\npub_topic: " << out_pub_topic_
-    << "\nchannel: " << mChannel_
-    << "\nin_mode: " << in_mode_
-    << "\nout_mode: " << out_mode_
-    << "\nin_format: " << in_format_
-    << "\nout_format: " << out_format_
-    << "\nenc_qp: " << enc_qp_
-    << "\njpg_quality: " << jpg_quality_
-    << "\ninput_framerate: " << input_framerate_
-    << "\noutput_framerate: " << output_framerate_
-    << "\ndump_output: " << dump_output_
+    << std::setprecision(2) << std::fixed
+    << "\n\t        sub_topic: " << in_sub_topic_
+    << "\n\t        pub_topic: " << out_pub_topic_
+    << "\n\t          channel: " << mChannel_
+    << "\n\t          in_mode: " << in_mode_
+    << "\n\t         out_mode: " << out_mode_
+    << "\n\t        in_format: " << in_format_
+    << "\n\t       out_format: " << out_format_
+    << "\n\t      jpg_quality: " << jpg_quality_
+    << "\n\t  input_framerate: " << input_framerate_
+    << "\n\t output_framerate: " << output_framerate_
+    << "\n\t      dump_output: " << (dump_output_ ? "true" : "false")
+    << "\n\t dump_frame_count: " << dump_frame_count_
   );
 }
 
@@ -215,16 +214,9 @@ void HobotCodecNode::check_params()
   }
 
   if (IsType(out_format_.c_str(), enc_types)) {
-    if (enc_qp_ < 0 || enc_qp_ > 100) {
-      RCLCPP_ERROR(this->get_logger(),
-      "Invalid enc_qp: %f! The value range is floating point number from 0 to 100."
-      " Please check the enc_qp parameter.", enc_qp_);
-      rclcpp::shutdown();
-      return;
-    }
     if (jpg_quality_ < 0 || jpg_quality_ > 100) {
       RCLCPP_ERROR(this->get_logger(),
-      "Invalid jpg_quality: %f! The value range is floating point number from 0 to 100."
+      "Invalid jpg_quality: %.2f! The value range is floating point number from 0 to 100."
       " Please check the jpg_quality parameter.", jpg_quality_);
       rclcpp::shutdown();
       return;
@@ -290,11 +282,11 @@ HobotCodecNode::HobotCodecNode(const rclcpp::NodeOptions& node_options,
   this->declare_parameter("out_mode", "ros");
   this->declare_parameter("in_format", "bgr8");
   this->declare_parameter("out_format", "jpeg");
-  this->declare_parameter("enc_qp", 10.0);
   this->declare_parameter("jpg_quality", 60.0);
   this->declare_parameter("input_framerate", 30);
   this->declare_parameter("output_framerate", -1);
   this->declare_parameter("dump_output", false);
+  this->declare_parameter("dump_frame_count", dump_frame_count_);
 
   // 更新配置参数
   get_params();
@@ -345,7 +337,6 @@ int HobotCodecNode::init()
     // 输出是压缩格式，需要创建编码器
     sp_hobot_codec_data_info_->hobot_codec_type = HobotCodecType::ENCODER;
     sp_hobot_codec_data_info_->jpg_quality_ = jpg_quality_;
-    sp_hobot_codec_data_info_->enc_qp_ = enc_qp_;
   } else {
     // 输出是非压缩格式，需要创建解码器
     sp_hobot_codec_data_info_->hobot_codec_type = HobotCodecType::DECODER;
@@ -851,7 +842,7 @@ void HobotCodecNode::timer_ros_pub()
 
   if (0 == out_format_.compare("h264") ||
     0 == out_format_.compare("h265") ) {
-    if (dump_output_) {
+    if (dump_output_ && !dumpCompleted()) {
       static std::ofstream ofs(dump_output_file_ + "_" +
       std::to_string(oFrame->sp_frame_info->img_ts_.tv_sec) + "_" +
       std::to_string(oFrame->sp_frame_info->img_ts_.tv_nsec) +
@@ -908,7 +899,7 @@ void HobotCodecNode::timer_ros_pub()
       << ", stamp: " << compressed_img_pub_->header.stamp.sec
       << "." << compressed_img_pub_->header.stamp.nanosec;
 
-    if (dump_output_) {
+    if (dump_output_ && !dumpCompleted()) {
       std::ofstream ofs(dump_output_file_ + "_" +
       std::to_string(oFrame->sp_frame_info->img_idx_) + "_" +
       std::to_string(oFrame->sp_frame_info->img_ts_.tv_sec) + "_" +
@@ -1029,7 +1020,7 @@ void HobotCodecNode::timer_ros_pub()
     << ", stamp: " << img_pub_->header.stamp.sec
     << "." << img_pub_->header.stamp.nanosec;
 
-    if (dump_output_) {
+    if (dump_output_ && !dumpCompleted()) {
       std::ofstream ofs(dump_output_file_ + "_" +
       std::to_string(oFrame->sp_frame_info->img_idx_) + "_" +
       std::to_string(oFrame->sp_frame_info->img_ts_.tv_sec) + "_" +
@@ -1108,7 +1099,7 @@ void HobotCodecNode::timer_hbmem_pub() {
 
   if (0 == out_format_.compare("h264") ||
     0 == out_format_.compare("h265") ) {
-    if (dump_output_) {
+    if (dump_output_ && !dumpCompleted()) {
       static std::ofstream ofs(dump_output_file_ + "_" +
       std::to_string(oFrame->sp_frame_info->img_idx_) + "_" +
       std::to_string(oFrame->sp_frame_info->img_ts_.tv_sec) + "_" +
@@ -1267,7 +1258,7 @@ if(oFrame->mPtrData != nullptr)
       << ", stamp: " << msg.time_stamp.sec
       << "." << msg.time_stamp.nanosec;
 
-      if (dump_output_) {
+      if (dump_output_ && !dumpCompleted()) {
         std::ofstream ofs(dump_output_file_ + "_" +
         std::to_string(oFrame->sp_frame_info->img_idx_) + "_" +
         std::to_string(oFrame->sp_frame_info->img_ts_.tv_sec) + "_" +
@@ -1320,6 +1311,19 @@ if(oFrame->mPtrData != nullptr)
   ss << ", codec delay ms: "
     << sp_run_time_data->out_codec_delay_;
   RCLCPP_INFO(this->get_logger(), "%s", ss.str().data());
+}
+
+bool HobotCodecNode::dumpCompleted() {
+  if (dump_frame_count_ <= 0) {
+    return false;
+  }
+  static int dump_count = 0;
+  if (dump_count < dump_frame_count_) {
+    dump_count++;
+    return false;
+  }
+  RCLCPP_WARN_ONCE(this->get_logger(), "dump completed, dump_frame_count: %d", dump_frame_count_);
+  return true;
 }
 
 int RunTimeStat::Update(std::shared_ptr<RunTimeData> sp_run_time_data) {

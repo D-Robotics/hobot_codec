@@ -37,25 +37,35 @@ rosdep install -i --from-path . --rosdistro foxy -y
 ## 开发环境
 
 - 编程语言: C/C++
-- 开发平台: X3/X86
-- 系统版本：Ubuntu 20.04
+- 开发平台: RDK/X86
+- 系统版本：Ubuntu 20.04/22.04
 - 编译工具链:Linux GCC 9.3.0/Linaro GCC 9.3.0
 
 ## 编译
 
 支持在X3 Ubuntu系统上编译和在PC上使用docker交叉编译两种方式。
 
-### X3 Ubuntu系统板端编译X3版本
+### RDK Ubuntu系统板端编译
 
 1、编译环境确认
 
 - 板端已安装X3 Ubuntu系统。
 - 当前编译终端已设置TogetherROS环境变量：`source PATH/setup.bash`。其中PATH为TogetherROS的安装路径。
-- 已安装ROS2编译工具colcon，安装命令：`pip install -U colcon-common-extensions`
+- 已安装ROS2编译工具colcon，安装命令：`sudo apt install ros-dev-tools`
 
 2、编译：
 
-- `colcon build --packages-select hobot_codec --cmake-args -DPLATFORM_X3=ON`。
+```bash
+# RDK X3 平台编译
+colcon build --packages-select hobot_codec --cmake-args -DPLATFORM_X3=ON
+
+# RDK X5 平台编译
+colcon build --packages-select hobot_codec --cmake-args -DPLATFORM_X5=ON
+
+# RDK S100 平台编译
+colcon build --packages-select hobot_codec --cmake-args -DPLATFORM_S100=ON
+
+```
 
 ### docker交叉编译X3版本
 
@@ -125,11 +135,11 @@ ros2 run hobot_codec hobot_codec_republish
 | out_format       | 处理后发布的数据格式         | bgr8/rgb8/nv12/jpeg/h264/h265 | jpeg                  |
 | sub_topic        | 订阅的话题名字               | 任意字符串，但必须是别的node 发布的topic      | /image_raw            |
 | pub_topic        | 发布的话题名字               | 任意字符串                                    | /image_raw/compressed |
-| enc_qp           | 264/265编码质量              | 浮点数 0-100                                  | 10.0                  |
 | jpg_quality      | jpeg 编码质量                | 浮点数 0-100                                  | 60.0                  |
 | input_framerate  | 输入帧率，实际送数据帧率     | 正整数                                        | 30                    |
 | output_framerate | 输出帧率，仅编码模式支持配置 | 正整数，小于等于输入帧率                      | -1（不开启帧率控制）  |
 | dump_output      | 存储编解码输出配置            | True存储，False不存储                          | False                 |
+| dump_frame_count | 存储编解码输出帧数            | 任意整数，<= 0 表示不限制帧数                 | -1（不限制）        |
 
 ### 注意
 

@@ -50,9 +50,7 @@ int HobotVenc::Init(const std::shared_ptr<HobotCodecParaBase>& sp_hobot_codec_pa
     return -1;
   }
 
-
   m_fJpgQuality = sp_hobot_codec_para->jpg_quality_;
-  m_fEncQp = sp_hobot_codec_para->enc_qp_;
 
   return 0;
 }

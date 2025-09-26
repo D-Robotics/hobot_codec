@@ -92,7 +92,6 @@ struct HobotCodecParaBase {
   HobotCodecType hobot_codec_type = HobotCodecType::INVALID;
   int framerate_ = 30;
   int mChannel_ = 0;
-  float enc_qp_ = 10.0;
   float jpg_quality_ = 10.0;
 };
 

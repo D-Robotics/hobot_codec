@@ -265,13 +265,6 @@ int HobotVenc::CheckParams(const std::shared_ptr<HobotCodecParaBase>& sp_hobot_c
     return -1;
   }
 
-  if (sp_hobot_codec_para->enc_qp_ < 0 || sp_hobot_codec_para->enc_qp_ > 100) {
-    RCLCPP_ERROR(rclcpp::get_logger("HobotVenc"),
-    "Invalid enc_qp: %f! The value range is floating point number from 0 to 100."
-    " Please check the enc_qp parameter.", sp_hobot_codec_para->enc_qp_);
-    rclcpp::shutdown();
-    return -1;
-  }
   if (sp_hobot_codec_para->jpg_quality_ < 0 || sp_hobot_codec_para->jpg_quality_ > 100) {
     RCLCPP_ERROR(rclcpp::get_logger("HobotVenc"),
     "Invalid jpg_quality: %f! The value range is floating point number from 0 to 100."

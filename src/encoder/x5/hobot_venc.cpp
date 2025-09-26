@@ -47,6 +47,7 @@ int HobotVenc::Init(const std::shared_ptr<HobotCodecParaBase>& sp_hobot_codec_pa
   codec_chn_ = sp_hobot_codec_para->mChannel_;
   m_fJpgQuality = sp_hobot_codec_para->jpg_quality_;
 
+  RCLCPP_INFO_ONCE(rclcpp::get_logger("HobotVenc"), "Init success");
   return 0;
 }
 
@@ -109,14 +110,14 @@ int HobotVenc::Start(int nPicWidth, int nPicHeight) {
                        );
 
     if (0 != FormalInit()) {
-      RCLCPP_ERROR(rclcpp::get_logger("HobotVenc"), "FormalInit fail!");
+      RCLCPP_ERROR(rclcpp::get_logger("HobotVenc"), "Formal Init fail!");
       return -1;
     }
   }
 
   codec_stat_ = CodecStatType::START;
 
-  RCLCPP_DEBUG(rclcpp::get_logger("HobotVenc"), "Start success");
+  RCLCPP_INFO_ONCE(rclcpp::get_logger("HobotVenc"), "Start success");
   return 0;
 }
 
@@ -296,13 +297,6 @@ int HobotVenc::CheckParams(const std::shared_ptr<HobotCodecParaBase>& sp_hobot_c
     return -1;
   }
 
-  if (sp_hobot_codec_para->enc_qp_ < 0 || sp_hobot_codec_para->enc_qp_ > 100) {
-    RCLCPP_ERROR(rclcpp::get_logger("HobotVenc"),
-    "Invalid enc_qp: %f! The value range is floating point number from 0 to 100."
-    " Please check the enc_qp parameter.", sp_hobot_codec_para->enc_qp_);
-    rclcpp::shutdown();
-    return -1;
-  }
   if (sp_hobot_codec_para->jpg_quality_ < 0 || sp_hobot_codec_para->jpg_quality_ > 100) {
     RCLCPP_ERROR(rclcpp::get_logger("HobotVenc"),
     "Invalid jpg_quality: %f! The value range is floating point number from 0 to 100."
@@ -315,7 +309,7 @@ int HobotVenc::CheckParams(const std::shared_ptr<HobotCodecParaBase>& sp_hobot_c
 }
 
 int HobotVenc::FormalInit() {
-  RCLCPP_DEBUG(rclcpp::get_logger("HobotVenc"), "FormalInit start");
+  RCLCPP_INFO_ONCE(rclcpp::get_logger("HobotVenc"), "Formal Init start");
 
   if (!context_) {
     context_ = (media_codec_context_t *)malloc(sizeof(media_codec_context_t));
@@ -341,8 +335,11 @@ int HobotVenc::FormalInit() {
   params->mir_direction = MC_DIRECTION_NONE;
   params->frame_cropping_flag = false;
   params->enable_user_pts = 1;
+
   int ret = 0;
   if (CodecImgFormat::FORMAT_H265 == frame_fmt_) {
+    RCLCPP_INFO_ONCE(rclcpp::get_logger("HobotVenc"), "encoder format is h265");
+
     params->rc_params.mode = MC_AV_RC_MODE_H265CBR;
     ret = hb_mm_mc_get_rate_control_config(context_, &params->rc_params);
     if (ret != 0) {
@@ -350,7 +347,6 @@ int HobotVenc::FormalInit() {
       return ret;
     }
     params->rc_params.h265_cbr_params.intra_period = 20;
-    params->rc_params.h265_cbr_params.intra_qp = 30;
     // params->rc_params.h265_cbr_params.bit_rate = 5000;
     // params->rc_params.h265_cbr_params.frame_rate = 30;
     params->rc_params.h265_cbr_params.initial_rc_qp = 20;
@@ -369,14 +365,15 @@ int HobotVenc::FormalInit() {
     params->rc_params.h264_cbr_params.bit_rate = 5000;
     params->rc_params.h264_cbr_params.frame_rate = 30;
   } else if (CodecImgFormat::FORMAT_H264 == frame_fmt_) {
+    RCLCPP_INFO_ONCE(rclcpp::get_logger("HobotVenc"), "encoder format is h264");
     params->rc_params.mode = MC_AV_RC_MODE_H264CBR;
+    
     ret = hb_mm_mc_get_rate_control_config(context_, &params->rc_params);
     if (ret != 0) {
       RCLCPP_ERROR(rclcpp::get_logger("HobotVenc"), "hb_mm_mc_get_rate_control_config failed, ret: 0x%x", ret);
       return ret;
     }
     params->rc_params.h264_cbr_params.intra_period = 30;
-    params->rc_params.h264_cbr_params.intra_qp = 30;
     // params->rc_params.h264_cbr_params.bit_rate = 5000;
     // params->rc_params.h264_cbr_params.frame_rate = 30;
     params->rc_params.h264_cbr_params.initial_rc_qp = 20;
@@ -396,9 +393,14 @@ int HobotVenc::FormalInit() {
 		params->rc_params.h264_cbr_params.bit_rate = 5000;
   } else if (CodecImgFormat::FORMAT_JPEG == frame_fmt_ ||
     CodecImgFormat::FORMAT_MJPEG == frame_fmt_) {
+    RCLCPP_INFO_ONCE(rclcpp::get_logger("HobotVenc"), "encoder format is jpeg");
+
 		context_->codec_id = MEDIA_CODEC_ID_JPEG;
 		params->jpeg_enc_config.quality_factor = m_fJpgQuality;
 		params->mjpeg_enc_config.restart_interval = alined_pic_w_ / 16;
+  } else {
+    RCLCPP_ERROR(rclcpp::get_logger("HobotVenc"), "Invalid encoder format: %d!",
+      static_cast<int>(frame_fmt_));
   }
   // jpeg bitstream buffer size should be aligned with 4096
   int aline = 4096;
@@ -424,6 +426,7 @@ int HobotVenc::FormalInit() {
     return ret;
   }
 
+  RCLCPP_INFO_ONCE(rclcpp::get_logger("HobotVenc"), "Formal Init success");
   return 0;
 }
 

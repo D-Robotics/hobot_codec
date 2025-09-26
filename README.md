@@ -112,7 +112,7 @@ source ./install/local_setup.sh
 ros2 run hobot_codec hobot_codec_republish
 ```
 
-### Current Parameter List
+### Parameter List
 
 | Parameter Name   | Meaning                      | Value                                         | Default Value         |
 | ---------------- | ---------------------------- | --------------------------------------------- | --------------------- |
@@ -123,11 +123,11 @@ ros2 run hobot_codec hobot_codec_republish
 | out_format       | Format of published data after processing | bgr8/rgb8/nv12/jpeg/h264/h265 | jpeg                  |
 | sub_topic        | Topic name to subscribe to    | Any string, but must be published by another node | /image_raw        |
 | pub_topic        | Topic name to publish         | Any string                                    | /image_raw/compressed |
-| enc_qp           | 264/265 encoding quality      | Float number 0-100                             | 10.0                  |
 | jpg_quality      | JPEG encoding quality         | Float number 0-100                             | 60.0                  |
 | input_framerate  | Input frame rate, actual frame rate of input data | Positive integers               | 30                    |
 | output_framerate | Output frame rate, only supported in encoding mode | Positive integers, less than or equal to input frame rate | -1 (frame rate control is not enabled) |
 | dump_output      | Configuration for storing encoding/decoding output | True (store), False (do not store)  | False                 |
+| dump_frame_count | Configuration for storing encoding/decoding output frame count | Any integers, <= 0 means unlimitied  | -1 (unlimitied)                |
 
 ### Notes
 

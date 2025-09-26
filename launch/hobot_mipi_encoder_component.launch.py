@@ -84,7 +84,6 @@ def generate_launch_description():
                     {"out_format": LaunchConfiguration('codec_out_format')},
                     {"sub_topic": LaunchConfiguration('codec_sub_topic')},
                     {"pub_topic": LaunchConfiguration('codec_pub_topic')},
-                    {"enc_qp": LaunchConfiguration('codec_enc_qp')},
                     {"jpg_quality": LaunchConfiguration('codec_jpg_quality')},
                     {"input_framerate": LaunchConfiguration('codec_input_framerate')},
                     {"output_framerate": LaunchConfiguration('codec_output_framerate')},
@@ -141,10 +140,6 @@ def generate_launch_description():
             'codec_pub_topic',
             default_value='/image_encoder',
             description='publish topic name'),
-        DeclareLaunchArgument(
-            'codec_enc_qp',
-            default_value='10.0',
-            description='h264/h265 encoding quality, 0-100'),
         DeclareLaunchArgument(
             'codec_jpg_quality',
             default_value='60.0',

@@ -19,7 +19,7 @@
 // H264 H265 MJPEG
 #include "include/video_utils.hpp"
 
-HobotVenc::HobotVenc() : m_fJpgQuality(0), m_fEncQp(20.0) {
+HobotVenc::HobotVenc() : m_fJpgQuality(0) {
 }
 
 HobotVenc::~HobotVenc() {
@@ -47,7 +47,6 @@ int HobotVenc::Init(const std::shared_ptr<HobotCodecParaBase>& sp_hobot_codec_pa
   frame_fmt_ = ConvertPalType(m_enPalType);
 
   m_fJpgQuality = sp_hobot_codec_para->jpg_quality_;
-  m_fEncQp = sp_hobot_codec_para->enc_qp_;
   codec_chn_ = sp_hobot_codec_para->mChannel_;
 
   return 0;
@@ -246,13 +245,6 @@ int HobotVenc::CheckParams(const std::shared_ptr<HobotCodecParaBase>& sp_hobot_c
     return -1;
   }
 
-  if (sp_hobot_codec_para->enc_qp_ < 0 || sp_hobot_codec_para->enc_qp_ > 100) {
-    RCLCPP_ERROR(rclcpp::get_logger("HobotVenc"),
-    "Invalid enc_qp: %f! The value range is floating point number from 0 to 100."
-    " Please check the enc_qp parameter.", sp_hobot_codec_para->enc_qp_);
-    rclcpp::shutdown();
-    return -1;
-  }
   if (sp_hobot_codec_para->jpg_quality_ < 0 || sp_hobot_codec_para->jpg_quality_ > 100) {
     RCLCPP_ERROR(rclcpp::get_logger("HobotVenc"),
     "Invalid jpg_quality: %f! The value range is floating point number from 0 to 100."
@@ -416,8 +408,6 @@ int HobotVenc::chnAttr_init() {
         m_oVencChnAttr.stRcAttr.enRcMode = VENC_RC_MODE_H265VBR;
         // 不使能QpMap
         m_oVencChnAttr.stRcAttr.stH265Vbr.bQpMapEnable = HB_FALSE;
-        // 设置I帧Qp值
-        m_oVencChnAttr.stRcAttr.stH265Vbr.u32IntraQp = m_fEncQp;  // 20;
         // 设置I帧间隔
         m_oVencChnAttr.stRcAttr.stH265Vbr.u32IntraPeriod = 60;
         // 设置帧率
@@ -428,8 +418,6 @@ int HobotVenc::chnAttr_init() {
         m_oVencChnAttr.stRcAttr.enRcMode = VENC_RC_MODE_H264VBR;
         // 不使能QpMap
         m_oVencChnAttr.stRcAttr.stH264Vbr.bQpMapEnable = HB_FALSE;
-        // 设置I帧Qp值
-        m_oVencChnAttr.stRcAttr.stH264Vbr.u32IntraQp = 20;
         // 设置I帧间隔
         m_oVencChnAttr.stRcAttr.stH264Vbr.u32IntraPeriod = 60;
         // 设置帧率
