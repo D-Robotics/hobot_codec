@@ -69,6 +69,10 @@ elseif(PLATFORM_S100)
   message("build platform S100")
   add_definitions(-DPLATFORM_S100)
   set(PREFIX_PATH x5)
+elseif(PLATFORM_S600)
+  message("build platform S600")
+  add_definitions(-DPLATFORM_S600)
+  set(PREFIX_PATH x5)
 else()
   message("invalid platform, build platform X3 default")
   add_definitions(-DPLATFORM_X3)
@@ -92,7 +96,7 @@ if(PLATFORM_X5)
   link_directories(
     ${CMAKE_SYSROOT}/usr/hobot/lib
   )
-elseif(PLATFORM_S100)
+elseif(PLATFORM_S100 OR PLATFORM_S600)
   include_directories(
     ${CMAKE_SYSROOT}/usr/hobot/include/
     ${CMAKE_SYSROOT}/usr/hobot/include/libmm
@@ -110,7 +114,7 @@ elseif(PLATFORM_X86)
   set(SYS_LIB ${OpenCV_LIBS})
 elseif(PLATFORM_Rdkultra OR PLATFORM_X5)
   set(SYS_LIB multimedia)
-elseif(PLATFORM_S100)
+elseif(PLATFORM_S100 OR PLATFORM_S600)
   set(SYS_LIB multimedia)
 else()
   message("link platform X3 libs default")
