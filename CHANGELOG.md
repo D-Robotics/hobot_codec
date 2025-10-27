@@ -1,6 +1,6 @@
 # Changelog for package hobot_codec
 
-tros_2.3.4 (To be Released)
+tros_2.3.4 (2025-10-27)
 ------------------
 1. 删除无效的配置参数`enc_qp`。
 2. 增加配置参数`dump_frame_count`，用于控制保存的编解码帧数。

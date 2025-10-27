@@ -127,7 +127,7 @@ void HobotCodecNode::get_params()
     } else if (parameter.get_name() == "dump_output") {
       dump_output_ = parameter.as_bool();
       RCLCPP_INFO(this->get_logger(),
-        "dump_output_ value: %d, file: %s", dump_output_, dump_output_file_.data());
+        "dump_output_ value: %d, file: %s", dump_output_, dump_file_prefix_.data());
     } else if (parameter.get_name() == "dump_frame_count") {
       dump_frame_count_ = parameter.as_int();
     } else {
@@ -150,6 +150,7 @@ void HobotCodecNode::get_params()
     << "\n\t  input_framerate: " << input_framerate_
     << "\n\t output_framerate: " << output_framerate_
     << "\n\t      dump_output: " << (dump_output_ ? "true" : "false")
+    << "\n\t dump_file_prefix: " << dump_file_prefix_.data()
     << "\n\t dump_frame_count: " << dump_frame_count_ << (dump_frame_count_ <= 0 ? " (unlimited)" : "")
   );
 }
@@ -843,7 +844,7 @@ void HobotCodecNode::timer_ros_pub()
   if (0 == out_format_.compare("h264") ||
     0 == out_format_.compare("h265") ) {
     if (dump_output_ && !dumpCompleted()) {
-      static std::ofstream ofs(dump_output_file_ + "_" +
+      static std::ofstream ofs(dump_file_prefix_ + "_" +
       std::to_string(oFrame->sp_frame_info->img_ts_.tv_sec) + "_" +
       std::to_string(oFrame->sp_frame_info->img_ts_.tv_nsec) +
       "." + out_format_);
@@ -900,7 +901,7 @@ void HobotCodecNode::timer_ros_pub()
       << "." << compressed_img_pub_->header.stamp.nanosec;
 
     if (dump_output_ && !dumpCompleted()) {
-      std::ofstream ofs(dump_output_file_ + "_" +
+      std::ofstream ofs(dump_file_prefix_ + "_" +
       std::to_string(oFrame->sp_frame_info->img_idx_) + "_" +
       std::to_string(oFrame->sp_frame_info->img_ts_.tv_sec) + "_" +
       std::to_string(oFrame->sp_frame_info->img_ts_.tv_nsec) +
@@ -1021,7 +1022,7 @@ void HobotCodecNode::timer_ros_pub()
     << "." << img_pub_->header.stamp.nanosec;
 
     if (dump_output_ && !dumpCompleted()) {
-      std::ofstream ofs(dump_output_file_ + "_" +
+      std::ofstream ofs(dump_file_prefix_ + "_" +
       std::to_string(oFrame->sp_frame_info->img_idx_) + "_" +
       std::to_string(oFrame->sp_frame_info->img_ts_.tv_sec) + "_" +
       std::to_string(oFrame->sp_frame_info->img_ts_.tv_nsec) +
@@ -1100,7 +1101,7 @@ void HobotCodecNode::timer_hbmem_pub() {
   if (0 == out_format_.compare("h264") ||
     0 == out_format_.compare("h265") ) {
     if (dump_output_ && !dumpCompleted()) {
-      static std::ofstream ofs(dump_output_file_ + "_" +
+      static std::ofstream ofs(dump_file_prefix_ + "_" +
       std::to_string(oFrame->sp_frame_info->img_idx_) + "_" +
       std::to_string(oFrame->sp_frame_info->img_ts_.tv_sec) + "_" +
       std::to_string(oFrame->sp_frame_info->img_ts_.tv_nsec) +
@@ -1259,7 +1260,7 @@ if(oFrame->mPtrData != nullptr)
       << "." << msg.time_stamp.nanosec;
 
       if (dump_output_ && !dumpCompleted()) {
-        std::ofstream ofs(dump_output_file_ + "_" +
+        std::ofstream ofs(dump_file_prefix_ + "_" +
         std::to_string(oFrame->sp_frame_info->img_idx_) + "_" +
         std::to_string(oFrame->sp_frame_info->img_ts_.tv_sec) + "_" +
         std::to_string(oFrame->sp_frame_info->img_ts_.tv_nsec) +
@@ -1322,7 +1323,10 @@ bool HobotCodecNode::dumpCompleted() {
     dump_count++;
     return false;
   }
-  RCLCPP_WARN_ONCE(this->get_logger(), "dump completed, dump_frame_count: %d", dump_frame_count_);
+  RCLCPP_WARN_ONCE(this->get_logger(),
+    "dump completed with dump_file_prefix: %s, dump_frame_count: %d",
+    dump_file_prefix_.data(),
+    dump_frame_count_);
   return true;
 }
 
