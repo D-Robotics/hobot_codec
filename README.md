@@ -43,13 +43,13 @@ rosdep install -i --from-path . --rosdistro foxy -y
 
 ## Compilation
 
-Support compiling on X3 Ubuntu system and using docker cross-compilation on PC.
+Support compiling on RDK Ubuntu system and using docker cross-compilation on PC.
 
-### Compilation of X3 version on X3 Ubuntu system
+### Compilation of X3 version on RDK Ubuntu system
 
 1. Confirm the compilation environment
 
-- X3 Ubuntu system is installed on the board.- The current compilation terminal has set the TogetherROS environment variable: `source PATH/setup.bash`. Where PATH is the installation path of TogetherROS.
+- RDK Ubuntu system is installed on the board.- The current compilation terminal has set the TogetherROS environment variable: `source PATH/setup.bash`. Where PATH is the installation path of TogetherROS.
 - ROS2 compilation tool colcon has been installed, installation command: `pip install -U colcon-common-extensions`
 
 2. Compilation:
@@ -102,7 +102,7 @@ Support compiling on X3 Ubuntu system and using docker cross-compilation on PC.
   ```
 # Usage
 
-## X3 Ubuntu System
+## RDK Ubuntu System
 
 After successful compilation, copy the generated installation path to the RDK X3 development board (if compiling on X3, ignore the copying step), and execute the following command to run:
 
@@ -203,13 +203,13 @@ ros2 run hobot_image_publisher hobot_image_pub --ros-args -p image_source:=./con
 1. Use zero-copy communication to start the MIPI camera and encoder respectively:
 
 ```shell
-source /opt/tros/setup.bash
+source /opt/tros/humble/setup.bash
 
 ros2 launch mipi_cam mipi_cam.launch.py mipi_video_device:=F37
 ```
 
 ```shell
-source /opt/tros/setup.bash
+source /opt/tros/humble/setup.bash
 
 ros2 launch hobot_codec hobot_codec.launch.py codec_in_mode:=shared_mem codec_in_format:=nv12 codec_out_mode:=ros codec_out_format:=jpeg codec_sub_topic:=/hbmem_img codec_pub_topic:=/image_jpeg
 ```
@@ -219,18 +219,18 @@ ros2 launch hobot_codec hobot_codec.launch.py codec_in_mode:=shared_mem codec_in
 Collect `mipi` image data and encode it into `h264` format video:
 
 ```shell
-source /opt/tros/setup.bash
-ros2 launch hobot_codec hobot_mipi_encoder_component.launch.py
+source /opt/tros/humble/setup.bash
+ros2 launch hobot_codec hobot_mipi_encoder_component.launch.py image_width:=960 image_height:=544
 ```
 
 Collect `mipi` image data and encode it into `jpeg` format images, saving the first 10 frames in the running path:
 
 ```shell
-source /opt/tros/setup.bash
-ros2 launch hobot_codec hobot_mipi_encoder_component.launch.py codec_out_format:=jpeg codec_dump_output:=True codec_dump_frame_count:=10
+source /opt/tros/humble/setup.bash
+ros2 launch hobot_codec hobot_mipi_encoder_component.launch.py image_width:=960 image_height:=544 codec_out_format:=jpeg codec_dump_output:=True codec_dump_frame_count:=10
 ```
 
-## X3 Linaro System
+## RDK Linaro System
 
 Copy the install directory compiled in docker to the Linaro system, for example: /userdata
 First specify the path of the dependent libraries, for example:
