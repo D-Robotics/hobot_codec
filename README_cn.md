@@ -255,7 +255,7 @@ source /opt/tros/humble/setup.bash
 ros2 launch hobot_codec hobot_mipi_encoder_component.launch.py image_width:=960 image_height:=544 codec_out_format:=jpeg codec_dump_output:=True codec_dump_frame_count:=10
 ```
 
-在运行路径下保存了10张jpeg图片，命令方式为dump_codec_output_0_[stamp].jpeg。
+在运行路径下保存了10张jpeg图片，命名方式为dump_codec_output_0_[stamp].jpeg。
 
 ## RDK linaro系统
 
