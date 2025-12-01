@@ -35,10 +35,10 @@ from ament_index_python.packages import get_package_prefix
 def generate_launch_description():
     # args that can be set from the command line or a default will be used
     image_width_launch_arg = DeclareLaunchArgument(
-        "image_width", default_value=TextSubstitution(text="1920")
+        "image_width", default_value=TextSubstitution(text="960")
     )
     image_height_launch_arg = DeclareLaunchArgument(
-        "image_height", default_value=TextSubstitution(text="1080")
+        "image_height", default_value=TextSubstitution(text="544")
     )
     declare_container_name_cmd = DeclareLaunchArgument(
         'container_name', 

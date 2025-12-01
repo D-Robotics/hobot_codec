@@ -132,7 +132,7 @@ class HobotCodecNode : public rclcpp::Node {
   bool dump_output_ = false;
   // <= 0: no limit
   int dump_frame_count_ = -1;
-  std::string dump_output_file_ = "dump_codec_output";
+  std::string dump_file_prefix_ = "./dump_codec_output";
   bool dumpCompleted();
 
   std::chrono::high_resolution_clock::time_point sub_imgraw_tp_;

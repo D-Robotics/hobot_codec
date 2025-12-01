@@ -43,13 +43,13 @@ rosdep install -i --from-path . --rosdistro foxy -y
 
 ## Compilation
 
-Support compiling on X3 Ubuntu system and using docker cross-compilation on PC.
+Support compiling on RDK Ubuntu system and using docker cross-compilation on PC.
 
-### Compilation of X3 version on X3 Ubuntu system
+### Compilation of X3 version on RDK Ubuntu system
 
 1. Confirm the compilation environment
 
-- X3 Ubuntu system is installed on the board.- The current compilation terminal has set the TogetherROS environment variable: `source PATH/setup.bash`. Where PATH is the installation path of TogetherROS.
+- RDK Ubuntu system is installed on the board.- The current compilation terminal has set the TogetherROS environment variable: `source PATH/setup.bash`. Where PATH is the installation path of TogetherROS.
 - ROS2 compilation tool colcon has been installed, installation command: `pip install -U colcon-common-extensions`
 
 2. Compilation:
@@ -102,7 +102,7 @@ Support compiling on X3 Ubuntu system and using docker cross-compilation on PC.
   ```
 # Usage
 
-## X3 Ubuntu System
+## RDK Ubuntu System
 
 After successful compilation, copy the generated installation path to the RDK X3 development board (if compiling on X3, ignore the copying step), and execute the following command to run:
 
@@ -165,7 +165,7 @@ ros2 run hobot_codec hobot_codec_republish --ros-args -p in_mode:=shared_mem -p 
 ros2 run hobot_codec hobot_codec_republish --ros-args -p in_mode:=shared_mem -p in_format:=nv12 -p out_mode:=shared_mem -p out_format:=h265 -p sub_topic:=/hbmem_img -p dump_output:=False
 ```
 
-2. Subscribe to H264 video and decode it into NV12 format images:
+3. Subscribe to H264 video and decode it into NV12 format images:
 
 ```shell
 # Decode into nv12 images
@@ -176,7 +176,7 @@ cp -r /opt/tros/${TROS_DISTRO}/lib/hobot_image_publisher/config/ .
 ros2 run hobot_image_publisher hobot_image_pub --ros-args -p image_source:=./config/test1.h264 -p image_format:=h264
 ```
 
-3. Subscribe to H265 video and decode it into NV12 format images:
+4. Subscribe to H265 video and decode it into NV12 format images:
 
 ```shell
 # Decode into nv12 images
@@ -187,7 +187,7 @@ cp -r /opt/tros/${TROS_DISTRO}/lib/hobot_image_publisher/config/ .
 ros2 run hobot_image_publisher hobot_image_pub --ros-args -p image_source:=./config/sky.h265 -p image_format:=h265
 ```
 
-4. Subscribe to JPEG images and decode them into NV12 format:
+5. Subscribe to JPEG images and decode them into NV12 format:
 
 ```shell
 # Subscribe to jpeg images and decode into nv12 images
@@ -200,19 +200,37 @@ ros2 run hobot_image_publisher hobot_image_pub --ros-args -p image_source:=./con
 
 ### Running method 2, using launch files
 
+1. Use zero-copy communication to start the MIPI camera and encoder respectively:
+
 ```shell
-source /opt/tros/setup.bash
+source /opt/tros/humble/setup.bash
 
 ros2 launch mipi_cam mipi_cam.launch.py mipi_video_device:=F37
 ```
 
 ```shell
-source /opt/tros/setup.bash
+source /opt/tros/humble/setup.bash
 
 ros2 launch hobot_codec hobot_codec.launch.py codec_in_mode:=shared_mem codec_in_format:=nv12 codec_out_mode:=ros codec_out_format:=jpeg codec_sub_topic:=/hbmem_img codec_pub_topic:=/image_jpeg
 ```
 
-## X3 Linaro System
+2. Use `component_container` to load the `mipi_cam` and `hobot_codec` nodes to implement in-process communication:
+
+Collect `mipi` image data and encode it into `h264` format video:
+
+```shell
+source /opt/tros/humble/setup.bash
+ros2 launch hobot_codec hobot_mipi_encoder_component.launch.py image_width:=960 image_height:=544
+```
+
+Collect `mipi` image data and encode it into `jpeg` format images, saving the first 10 frames in the running path:
+
+```shell
+source /opt/tros/humble/setup.bash
+ros2 launch hobot_codec hobot_mipi_encoder_component.launch.py image_width:=960 image_height:=544 codec_out_format:=jpeg codec_dump_output:=True codec_dump_frame_count:=10
+```
+
+## RDK Linaro System
 
 Copy the install directory compiled in docker to the Linaro system, for example: /userdata
 First specify the path of the dependent libraries, for example:

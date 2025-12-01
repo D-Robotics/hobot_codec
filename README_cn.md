@@ -43,13 +43,13 @@ rosdep install -i --from-path . --rosdistro foxy -y
 
 ## 编译
 
-支持在X3 Ubuntu系统上编译和在PC上使用docker交叉编译两种方式。
+支持在RDK Ubuntu系统上编译和在PC上使用docker交叉编译两种方式。
 
 ### RDK Ubuntu系统板端编译
 
 1、编译环境确认
 
-- 板端已安装X3 Ubuntu系统。
+- 板端已安装RDK Ubuntu系统。
 - 当前编译终端已设置TogetherROS环境变量：`source PATH/setup.bash`。其中PATH为TogetherROS的安装路径。
 - 已安装ROS2编译工具colcon，安装命令：`sudo apt install ros-dev-tools`
 
@@ -114,7 +114,7 @@ colcon build --packages-select hobot_codec --cmake-args -DPLATFORM_S100=ON
 
 # Usage
 
-## X3 Ubuntu系统
+## RDK Ubuntu系统
 
 编译成功后，将生成的install路径拷贝到RDK X3开发板上（如果是在X3上编译，忽略拷贝步骤），并执行如下命令运行
 
@@ -139,7 +139,7 @@ ros2 run hobot_codec hobot_codec_republish
 | input_framerate  | 输入帧率，实际送数据帧率     | 正整数                                        | 30                    |
 | output_framerate | 输出帧率，仅编码模式支持配置 | 正整数，小于等于输入帧率                      | -1（不开启帧率控制）  |
 | dump_output      | 存储编解码输出配置            | True存储，False不存储                          | False                 |
-| dump_frame_count | 存储编解码输出帧数            | 任意整数，<= 0 表示不限制帧数                 | -1（不限制）        |
+| dump_frame_count | 存储编解码输出帧数，dump_output为true时有效            | 任意整数，<= 0 表示不限制帧数                 | -1（不限制）        |
 
 ### 注意
 
@@ -178,7 +178,7 @@ ros2 run hobot_codec hobot_codec_republish --ros-args -p in_mode:=shared_mem -p 
 ros2 run hobot_codec hobot_codec_republish --ros-args -p in_mode:=shared_mem -p in_format:=nv12 -p out_mode:=shared_mem -p out_format:=h265 -p sub_topic:=/hbmem_img -p dump_output:=False
 ```
 
-2. 订阅H264视频，解码出NV12格式图片：
+3. 订阅H264视频，解码出NV12格式图片：
 
 ```shell
 # 解码成nv12图片
@@ -189,7 +189,7 @@ cp -r /opt/tros/${TROS_DISTRO}/lib/hobot_image_publisher/config/ .
 ros2 run hobot_image_publisher hobot_image_pub --ros-args -p image_source:=./config/test1.h264 -p image_format:=h264
 ```
 
-3. 订阅H265视频，解码出NV12格式图片：
+4. 订阅H265视频，解码出NV12格式图片：
 
 ```shell
 # 解码成nv12图片
@@ -200,7 +200,7 @@ cp -r /opt/tros/${TROS_DISTRO}/lib/hobot_image_publisher/config/ .
 ros2 run hobot_image_publisher hobot_image_pub --ros-args -p image_source:=./config/sky.h265 -p image_format:=h265
 ```
 
-4. 订阅JPEG图片后解码成NV12格式：
+5. 订阅JPEG图片后解码成NV12格式：
 
 ```shell
 # 订阅jpeg图片，解码成nv12图片
@@ -216,25 +216,48 @@ ros2 run hobot_image_publisher hobot_image_pub --ros-args -p image_source:=./con
 1. 使用零拷贝通信，分别启动MIPI摄像头和编码器：
 
 ```shell
-source /opt/tros/setup.bash
-
+source /opt/tros/humble/setup.bash
 ros2 launch mipi_cam mipi_cam.launch.py mipi_video_device:=F37
 ```
 
 ```shell
-source /opt/tros/setup.bash
-
+source /opt/tros/humble/setup.bash
 ros2 launch hobot_codec hobot_codec.launch.py codec_in_mode:=shared_mem codec_in_format:=nv12 codec_out_mode:=ros codec_out_format:=jpeg codec_sub_topic:=/hbmem_img codec_pub_topic:=/image_jpeg
 ```
 
-2. 使用`component_container`加载`mipi_cam`和`hobot_codec` node：
+订阅编码后的图像数据，并打印发布频率：
 
 ```shell
-source /opt/tros/setup.bash
-ros2 launch hobot_codec hobot_mipi_encoder_component.launch.py
+source /opt/tros/humble/setup.bash
+ros2 topic hz -w 30 /image_jpeg
 ```
 
-## X3 linaro系统
+2. 使用`component_container`加载`mipi_cam`和`hobot_codec` node，实现进程内通信：
+
+- 采集`mipi`图像数据并编码成`h264`格式视频：
+
+```shell
+source /opt/tros/humble/setup.bash
+ros2 launch hobot_codec hobot_mipi_encoder_component.launch.py image_width:=960 image_height:=544
+```
+
+订阅编码后的图像数据，并打印发布频率：
+
+```shell
+source /opt/tros/humble/setup.bash
+ros2 topic hz -w 30 /image_encoder
+```
+
+- 采集`mipi`图像数据并编码成`jpeg`格式图像，保存前10帧数据在运行路径下：
+
+```shell
+source /opt/tros/humble/setup.bash
+ros2 launch hobot_codec hobot_mipi_encoder_component.launch.py image_width:=960 image_height:=544 codec_out_format:=jpeg codec_dump_output:=True codec_dump_frame_count:=10
+```
+
+在运行路径下保存了10张jpeg图片，命名方式为dump_codec_output_0_[stamp].jpeg。
+
+## RDK linaro系统
 
 把在docker 交叉编译的install 目录拷贝到linaro 系统下，例如:/userdata
 需要首先指定依赖库的路径，例如：

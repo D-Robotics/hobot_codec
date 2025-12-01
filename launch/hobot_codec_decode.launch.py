@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import uuid
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
@@ -23,6 +23,8 @@ from ament_index_python import get_package_share_directory
 import os
 
 def generate_launch_description():
+    random_suffix = str(uuid.uuid4())[:8]
+    node_name = f"hobot_codec_decoder_{random_suffix}"
     return LaunchDescription([
         DeclareLaunchArgument(
             'codec_channel',
@@ -74,8 +76,8 @@ def generate_launch_description():
         Node(
             package='hobot_codec',
             executable='hobot_codec_republish',
-            name='hobot_codec_decoder',
             output='screen',
+            name=node_name,            
             parameters=[
                 {"channel": LaunchConfiguration('codec_channel')},
                 {"in_mode": LaunchConfiguration('codec_in_mode')},
