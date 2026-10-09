@@ -89,7 +89,8 @@ void HobotCodecNode::get_params()
   for (auto &parameter : parameters_client->get_parameters(
            {"sub_topic", "pub_topic", "channel", "in_mode", "out_mode",
             "in_format", "out_format", "jpg_quality",
-            "input_framerate", "output_framerate", "dump_output", "dump_frame_count"})) {
+            "input_framerate", "output_framerate", "dump_output", "dump_frame_count",
+            "in_msg_type", "out_msg_type"})) {
     if (parameter.get_name() == "sub_topic") {
       RCLCPP_INFO(this->get_logger(),
         "sub_topic value: %s", parameter.value_to_string().c_str());
@@ -130,6 +131,12 @@ void HobotCodecNode::get_params()
         "dump_output_ value: %d, file: %s", dump_output_, dump_file_prefix_.data());
     } else if (parameter.get_name() == "dump_frame_count") {
       dump_frame_count_ = parameter.as_int();
+    } else if (parameter.get_name() == "in_msg_type") {
+      in_msg_type_ = parameter.value_to_string();
+      RCLCPP_INFO(this->get_logger(), "in_msg_type: %s", in_msg_type_.c_str());
+    } else if (parameter.get_name() == "out_msg_type") {
+      out_msg_type_ = parameter.value_to_string();
+      RCLCPP_INFO(this->get_logger(), "out_msg_type: %s", out_msg_type_.c_str());
     } else {
       RCLCPP_WARN(this->get_logger(),
         "Invalid parameter name: %s", parameter.get_name().c_str());
@@ -287,6 +294,8 @@ HobotCodecNode::HobotCodecNode(const rclcpp::NodeOptions& node_options,
   this->declare_parameter("input_framerate", 30);
   this->declare_parameter("output_framerate", -1);
   this->declare_parameter("dump_output", false);
+  this->declare_parameter("in_msg_type", "1080p");
+  this->declare_parameter("out_msg_type", "1080p");
   this->declare_parameter("dump_frame_count", dump_frame_count_);
 
   // 更新配置参数
@@ -373,13 +382,13 @@ int HobotCodecNode::init()
       if (in_format_.compare("jpeg") != 0) {
         // in_format_为bgr8/rgb8/nv12，订阅消息类型为sensor_msgs::msg::Image
         ros_subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
-            in_sub_topic_, PUB_QUEUE_NUM,
+            in_sub_topic_, rclcpp::QoS(rclcpp::KeepLast(1)).best_effort(),
             std::bind(&HobotCodecNode::in_ros_topic_cb, this, std::placeholders::_1));
       } else {
         // in_format_为jpeg，订阅消息类型为sensor_msgs::msg::CompressedImage
         ros_subscription_compressed_ =
             this->create_subscription<sensor_msgs::msg::CompressedImage>(
-            in_sub_topic_, PUB_QUEUE_NUM,
+            in_sub_topic_, rclcpp::QoS(rclcpp::KeepLast(1)).best_effort(),
             std::bind(&HobotCodecNode::in_ros_compressed_cb, this,
                       std::placeholders::_1));
       }
@@ -406,6 +415,10 @@ int HobotCodecNode::init()
       hbmemH26x_subscription_ = this->create_subscription<hbm_img_msgs::msg::HbmH26XFrame>(
         in_sub_topic_, rclcpp::SensorDataQoS(),
         std::bind(&HobotCodecNode::in_hbmemh264_topic_cb, this, std::placeholders::_1));
+    } else if (in_msg_type_ == "4k") {
+      hbmem4k_subscription_ = this->create_subscription<hbm_img_msgs::msg::HbmMsg4K>(
+        in_sub_topic_, rclcpp::SensorDataQoS(),
+        std::bind(&HobotCodecNode::in_hbmem4k_topic_cb, this, std::placeholders::_1));
     } else {
       hbmem_subscription_ = this->create_subscription<hbm_img_msgs::msg::HbmMsg1080P>(
         in_sub_topic_, rclcpp::SensorDataQoS(),
@@ -432,6 +445,9 @@ int HobotCodecNode::init()
     if (0 == out_format_.compare("h264") ||
       0 == out_format_.compare("h265") ) {
       h264hbmem_publisher_ = this->create_publisher<hbm_img_msgs::msg::HbmH26XFrame>(
+        out_pub_topic_.c_str(), rclcpp::SensorDataQoS());
+    } else if (out_msg_type_ == "4k") {
+      hbmem4k_publisher_ = this->create_publisher<hbm_img_msgs::msg::HbmMsg4K>(
         out_pub_topic_.c_str(), rclcpp::SensorDataQoS());
     } else {
       hbmem_publisher_ = this->create_publisher<hbm_img_msgs::msg::HbmMsg1080P>(
@@ -515,6 +531,105 @@ void HobotCodecNode::in_hbmemh264_topic_cb(
 
 void HobotCodecNode::in_hbmem_topic_cb(
     const hbm_img_msgs::msg::HbmMsg1080P::ConstSharedPtr msg) {
+  if (!rclcpp::ok()) {
+    return;
+  }
+
+  struct timespec time_now = {0, 0}, time_end = {0, 0}, time_in = {0, 0};
+  clock_gettime(CLOCK_REALTIME, &time_now);
+  time_in.tv_nsec = msg->time_stamp.nanosec;
+  time_in.tv_sec = msg->time_stamp.sec;
+  uint64_t mNow = (time_now.tv_sec * 1000 + time_now.tv_nsec / 1000000);
+  std::unique_lock<std::mutex> timestamp_lk(timestamp_mtx);
+  get_image_time = mNow;
+  timestamp_lk.unlock();
+
+  std::stringstream ss;
+  ss << "recved img"
+  << ", index: " << msg->index
+  << ", encoding: " << msg->encoding.data()
+  << ", w: " << msg->width
+  << ", h: " << msg->height
+  << ", size: " << msg->data_size
+  << ", stamp: " << msg->time_stamp.sec
+  << "." << msg->time_stamp.nanosec;
+
+  if (0 != in_format_.compare(reinterpret_cast<const char*>(msg->encoding.data()))) {
+    RCLCPP_WARN(this->get_logger(), "Recved img encoding: %s is unmatch with setting: %s",
+      msg->encoding.data(), in_format_.c_str());
+    return;
+  }
+
+  sub_frame_count_++;
+  if (output_framerate_ > 0) {
+    sub_frame_output_ += output_framerate_;
+    if (static_cast<int>(sub_frame_output_) >= input_framerate_) {
+      sub_frame_output_ -= input_framerate_;
+    } else {
+      RCLCPP_INFO(this->get_logger(),
+                  "[%s]->drop %ld, input %d, output %d, %ld", __func__,
+                  sub_frame_count_, input_framerate_, output_framerate_,
+                  sub_frame_output_);
+      return;
+    }
+  }
+
+  if (!sp_hobot_codec_impl_) {
+    RCLCPP_ERROR_STREAM(this->get_logger(), "Invalid codec impl!");
+    return;
+  }
+#ifndef PLATFORM_X86
+  if (0 == in_format_.compare("bgr8") || 0 == in_format_.compare("rgb8")) {
+    int nYuvLen = msg->width * msg->height * 3 / 2;
+    if (nullptr == mPtrIn)
+      mPtrIn = new uint8_t[msg->width * msg->height * 3 / 2];
+    if (0 == in_format_.compare("bgr8") && mPtrIn) {
+      video_utils::BGR24_to_NV12(msg->data.data(), mPtrIn, msg->width, msg->height);
+    } else {
+      video_utils::RGB24_to_NV12(msg->data.data(), mPtrIn, msg->width, msg->height);
+    }
+    sp_hobot_codec_impl_->Input(mPtrIn, msg->width, msg->height, nYuvLen,
+      std::make_shared<FrameInfo>(msg->index, time_in, time_now));
+  } else {
+    sp_hobot_codec_impl_->Input(msg->data.data(), msg->width, msg->height, msg->data_size,
+      std::make_shared<FrameInfo>(msg->index, time_in, time_now));
+  }
+#else
+  if (nullptr == mPtrIn) {
+    mPtrIn = new uint8_t[msg->width * msg->height * 3];
+  } 
+  //opencv编码输入类型为BGR格式
+  if (0 == in_format_.compare("rgb8") && mPtrIn) {
+    video_utils::RGB24_to_BGR24(msg->data.data(), mPtrIn, msg->width, msg->height);
+    sp_hobot_codec_impl_->Input(mPtrIn, msg->width, msg->height, msg->width * msg->height * 3, std::make_shared<FrameInfo>(0, time_in, time_now));
+  } else if (0 == in_format_.compare("nv12")) {
+    video_utils::NV12_to_BGR24(msg->data.data(), mPtrIn, msg->width, msg->height);
+    sp_hobot_codec_impl_->Input(mPtrIn, msg->width, msg->height, msg->width * msg->height * 3 / 2, std::make_shared<FrameInfo>(0, time_in, time_now));
+  } else {
+    //jpeg的解码以及BGR8的编码调用该接口
+    sp_hobot_codec_impl_->Input(msg->data.data(), msg->width, msg->height, msg->data_size, std::make_shared<FrameInfo>(0, time_in, time_now));    
+  }
+#endif
+
+  clock_gettime(CLOCK_REALTIME, &time_end);
+  
+  auto sp_run_time_data = std::make_shared<RunTimeData>();
+  sp_run_time_data->in_frame_count_ = 1;
+  sp_run_time_data->in_comm_delay_ =
+    tool_calc_time_laps(time_in, time_now);
+  sp_run_time_data->in_codec_delay_ =
+    (time_end.tv_sec * 1000 + time_end.tv_nsec / 1000000) - mNow;
+  RunTimeStat::GetInstance()->Update(sp_run_time_data);
+
+  ss << ", comm delay ms: " << sp_run_time_data->in_comm_delay_
+    << ", Input delay ms: " << sp_run_time_data->in_codec_delay_;
+  RCLCPP_INFO(this->get_logger(), "%s", ss.str().data());
+}
+
+// 4K 档位订阅回调：由 in_hbmem_topic_cb 程序化复制（HbmMsg1080P -> HbmMsg4K），
+// 主体逻辑完全一致，改动时需两处同步。
+void HobotCodecNode::in_hbmem4k_topic_cb(
+    const hbm_img_msgs::msg::HbmMsg4K::ConstSharedPtr msg) {
   if (!rclcpp::ok()) {
     return;
   }
@@ -1086,6 +1201,11 @@ void HobotCodecNode::timer_hbmem_pub() {
     return;
   }
 
+  if (hbmem4k_publisher_) {
+    timer_hbmem_pub_4k();
+    return;
+  }
+
   auto oFrame = sp_hobot_codec_impl_->GetOutput();
   if (!oFrame) {
     if (rclcpp::ok()) {
@@ -1269,6 +1389,247 @@ if(oFrame->mPtrData != nullptr)
       }
 
       hbmem_publisher_->publish(std::move(loanedMsg));
+      {
+        auto tp_raw_now = std::chrono::system_clock::now();
+        std::unique_lock<std::mutex> lk(frame_statraw_mtx_);
+        pub_imgraw_frameCount_++;
+        auto interval = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            tp_raw_now - pub_imgraw_tp_).count();
+        if (interval >= 5000) {
+          RCLCPP_WARN(this->get_logger(),
+          "Pub img fps [%.2f]",
+          pub_imgraw_frameCount_ / (interval / 1000.0));
+          pub_imgraw_frameCount_ = 0;
+          pub_imgraw_tp_ = std::chrono::system_clock::now();
+        }
+      }
+    } else {
+      RCLCPP_WARN(this->get_logger(), "borrow_loaned_message failed");
+    }
+  }
+  
+  auto sp_run_time_data = std::make_shared<RunTimeData>();
+  sp_run_time_data->out_frame_count_ = 1;
+  sp_run_time_data->out_codec_delay_ =
+    tool_calc_time_laps(oFrame->sp_frame_info->img_recved_ts_,
+    oFrame->sp_frame_info->img_processed_ts_);
+  RunTimeStat::GetInstance()->Update(sp_run_time_data);
+  auto sp_rt_data = RunTimeStat::GetInstance()->Get();
+  if (sp_rt_data) {
+    RCLCPP_WARN_STREAM(this->get_logger(),
+    "sub " << in_format_
+    << " " << oFrame->mWidth << "x" << oFrame->mHeight
+    << ", fps: " << sp_rt_data->in_frame_count_
+    << ", pub " << out_format_
+    << ", fps: " << sp_rt_data->out_frame_count_
+    << std::fixed << std::setprecision(4)
+    << ", comm delay [" << sp_rt_data->in_comm_delay_ << "]ms"
+    << ", codec delay [" << sp_rt_data->out_codec_delay_ << "]ms"
+    );
+  }
+  sp_hobot_codec_impl_->ReleaseOutput(oFrame);
+    
+  ss << ", codec delay ms: "
+    << sp_run_time_data->out_codec_delay_;
+  RCLCPP_INFO(this->get_logger(), "%s", ss.str().data());
+}
+
+// 4K 档位发布路径：由 timer_hbmem_pub 程序化复制（hbmem_publisher_ -> hbmem4k_publisher_），
+// 主体逻辑与 1080P 档完全一致，改动时需两处同步。
+void HobotCodecNode::timer_hbmem_pub_4k() {
+  if (!rclcpp::ok()) {
+    return;
+  }
+
+  if (!sp_hobot_codec_impl_) {
+    RCLCPP_ERROR(this->get_logger(), "Invalid hobot codec impl");
+    return;
+  }
+
+
+  auto oFrame = sp_hobot_codec_impl_->GetOutput();
+  if (!oFrame) {
+    if (rclcpp::ok()) {
+      RCLCPP_WARN_STREAM(this->get_logger(), "GetOutput fail!");
+    }
+    return;
+  }
+
+  std::stringstream ss;
+  ss << "pub img"
+    << ", index: " << oFrame->sp_frame_info->img_idx_;
+
+  if (0 == out_format_.compare("h264") ||
+    0 == out_format_.compare("h265") ) {
+    if (dump_output_ && !dumpCompleted()) {
+      static std::ofstream ofs(dump_file_prefix_ + "_" +
+      std::to_string(oFrame->sp_frame_info->img_idx_) + "_" +
+      std::to_string(oFrame->sp_frame_info->img_ts_.tv_sec) + "_" +
+      std::to_string(oFrame->sp_frame_info->img_ts_.tv_nsec) +
+      "." + out_format_);
+      ofs.write(reinterpret_cast<const char*>(oFrame->mPtrData), oFrame->mDataLen);
+    }
+
+    if (!h264hbmem_publisher_) {
+      RCLCPP_ERROR_STREAM(this->get_logger(), "Invalid h264hbmem_publisher_!");
+      return;
+    }
+    auto loanedMsg = h264hbmem_publisher_->borrow_loaned_message();
+    if (loanedMsg.is_valid()) {
+      auto& msg = loanedMsg.get();
+      msg.dts.sec = oFrame->sp_frame_info->img_ts_.tv_sec;
+      msg.dts.nanosec = oFrame->sp_frame_info->img_ts_.tv_nsec;
+      msg.pts.sec = oFrame->sp_frame_info->img_ts_.tv_sec;
+      msg.pts.nanosec = oFrame->sp_frame_info->img_ts_.tv_nsec;
+      msg.data_size = oFrame->mDataLen;
+      msg.height = oFrame->mHeight;
+      msg.width = oFrame->mWidth;
+      memcpy(msg.encoding.data(), out_format_.c_str(), out_format_.length());
+      memcpy(msg.data.data(), oFrame->mPtrData, oFrame->mDataLen);
+      msg.index = mSendIdx++;
+      
+      ss << ", encoding: " << msg.encoding.data()
+      << ", w: " << msg.width
+      << ", h: " << msg.height
+      << ", size: " << msg.data.size()
+      << ", stamp: " << msg.dts.sec
+      << "." << msg.dts.nanosec;
+
+      h264hbmem_publisher_->publish(std::move(loanedMsg));
+      {
+        auto tp_raw_now = std::chrono::system_clock::now();
+        std::unique_lock<std::mutex> lk(frame_statraw_mtx_);
+        pub_imgraw_frameCount_++;
+        auto interval = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            tp_raw_now - pub_imgraw_tp_).count();
+        if (interval >= 5000) {
+          RCLCPP_WARN(this->get_logger(),
+          "Pub img fps [%.2f]",
+          pub_imgraw_frameCount_ / (interval / 1000.0));
+          pub_imgraw_frameCount_ = 0;
+          pub_imgraw_tp_ = std::chrono::system_clock::now();
+        }
+      }
+    } else {
+      RCLCPP_WARN(this->get_logger(), "hbm_h26x borrow_loaned_message failed");
+    }
+  } else {
+    if (!hbmem4k_publisher_) {
+      RCLCPP_ERROR_STREAM(this->get_logger(), "Invalid hbmem4k_publisher_!");
+      return;
+    }
+    if (frame_interval_t_ > 0) {
+      auto tp = std::chrono::system_clock::now();
+      if (pub_time_q_.size() > 0) {
+        auto itm = pub_time_q_.front();
+        auto interval = std::chrono::duration_cast<std::chrono::milliseconds>(tp - itm).count();
+        if (interval < frame_interval_t_ * pub_time_q_.size()) {
+          sp_hobot_codec_impl_->ReleaseOutput(oFrame);
+          return;
+        }
+      }
+      pub_time_q_.push(tp);
+      if (pub_time_q_.size() > 100) {
+        pub_time_q_.pop();
+      }
+    } 
+    auto loanedMsg = hbmem4k_publisher_->borrow_loaned_message();
+    if (loanedMsg.is_valid()) {
+      auto& msg = loanedMsg.get();
+      msg.time_stamp.sec = oFrame->sp_frame_info->img_ts_.tv_sec;
+      msg.time_stamp.nanosec = oFrame->sp_frame_info->img_ts_.tv_nsec;
+      memcpy(msg.encoding.data(), out_format_.c_str(), out_format_.length());
+      msg.height = oFrame->mHeight;
+      msg.width = oFrame->mWidth;
+      msg.step = oFrame->mWidth;
+      if (0 == out_format_.compare("bgr8") || 0 == out_format_.compare("rgb8")) {
+        img_pub_->step = oFrame->mWidth * 3;
+      }
+      msg.data_size = oFrame->mDataLen;
+      int nOffSet = oFrame->mHeight * oFrame->mWidth;
+      RCLCPP_DEBUG(this->get_logger(), "mFrameFmt: %d",
+      static_cast<int>(oFrame->mFrameFmt));
+#ifndef PLATFORM_X86
+      if (CodecImgFormat::FORMAT_INVALID == oFrame->mFrameFmt) {
+        RCLCPP_ERROR(this->get_logger(), "Invalid mFrameFmt: %d",
+        static_cast<int>(oFrame->mFrameFmt));
+        return;
+      } else if (CodecImgFormat::FORMAT_NV12 == oFrame->mFrameFmt) {
+        if (0 == out_format_.compare("bgr8") || 0 == out_format_.compare("rgb8")) {
+          int nRgbLen = oFrame->mHeight * oFrame->mWidth * 3;
+          msg.data_size = nRgbLen;
+          if (nullptr == mPtrOut)
+            mPtrOut = new uint8_t[nRgbLen];
+          if (mPtrOut) {
+            if (0 == out_format_.compare("bgr8")) {
+              video_utils::NV12_TO_BGR24(oFrame->mPtrY, oFrame->mPtrUV, mPtrOut, oFrame->mWidth , oFrame->mHeight);
+            } else {
+              video_utils::NV12_TO_RGB24(oFrame->mPtrY, oFrame->mPtrUV, mPtrOut, oFrame->mWidth , oFrame->mHeight);
+            }
+            memcpy(msg.data.data(), mPtrOut, nRgbLen);
+          }
+        } else {
+          memcpy(msg.data.data(), oFrame->mPtrY, nOffSet);
+          memcpy(msg.data.data() + nOffSet, oFrame->mPtrUV,
+            nOffSet / 2);
+        }
+      } else {
+        memcpy(msg.data.data(), oFrame->mPtrData, oFrame->mDataLen);
+      }
+#else
+if(oFrame->mPtrData != nullptr)
+{
+  if (CodecImgFormat::FORMAT_INVALID == oFrame->mFrameFmt) {
+  RCLCPP_ERROR(this->get_logger(), "Invalid mFrameFmt: %d",
+  static_cast<int>(oFrame->mFrameFmt));
+  return;
+  } else if (CodecImgFormat::FORMAT_BGR == oFrame->mFrameFmt) {
+    int rgbLen = oFrame->mHeight * oFrame->mWidth * 3;
+    if (0 == out_format_.compare("rgb8") ) {
+      if (nullptr == mPtrOut) {
+        mPtrOut = new uint8_t[rgbLen];
+      }
+      video_utils::BGR24_to_RGB24(oFrame->mPtrData, mPtrOut, oFrame->mWidth,oFrame->mHeight);
+      msg.data_size = rgbLen;
+      memcpy(msg.data.data(), mPtrOut, rgbLen);
+    } else if (0 == out_format_.compare("nv12")) {
+      int nv12Len = oFrame->mHeight * oFrame->mWidth * 3 / 2;
+      if (nullptr == mPtrOut) {
+        mPtrOut = new uint8_t[nv12Len];
+      }
+      video_utils::BGR24_to_NV12(oFrame->mPtrData, mPtrOut, oFrame->mWidth, oFrame->mHeight);
+      msg.data_size = nv12Len;
+      memcpy(msg.data.data(), mPtrOut, nv12Len);
+    } else {
+      msg.data_size = oFrame->mDataLen;
+      memcpy(msg.data.data(), oFrame->mPtrData, oFrame->mDataLen);
+    }
+  } else {
+    msg.data_size = oFrame->mDataLen;
+    memcpy(msg.data.data(), oFrame->mPtrData, oFrame->mDataLen);
+  }
+}
+#endif
+      msg.index = mSendIdx++;
+      
+      ss << ", encoding: " << msg.encoding.data()
+      << ", w: " << msg.width
+      << ", h: " << msg.height
+      << ", step: " << msg.step
+      << ", size: " << msg.data_size
+      << ", stamp: " << msg.time_stamp.sec
+      << "." << msg.time_stamp.nanosec;
+
+      if (dump_output_ && !dumpCompleted()) {
+        std::ofstream ofs(dump_file_prefix_ + "_" +
+        std::to_string(oFrame->sp_frame_info->img_idx_) + "_" +
+        std::to_string(oFrame->sp_frame_info->img_ts_.tv_sec) + "_" +
+        std::to_string(oFrame->sp_frame_info->img_ts_.tv_nsec) +
+        "." + out_format_);
+        ofs.write(reinterpret_cast<const char*>(msg.data.data()), msg.data_size);
+      }
+
+      hbmem4k_publisher_->publish(std::move(loanedMsg));
       {
         auto tp_raw_now = std::chrono::system_clock::now();
         std::unique_lock<std::mutex> lk(frame_statraw_mtx_);

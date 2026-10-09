@@ -1,4 +1,8 @@
 # Changelog for package hobot_codec
+tros_2.4.0 (2026-10-10)
+------------------
+1. 增加 hbm4k msg 支持
+
 tros_2.3.5 (2025-12-01)
 ------------------
 1. 增加RDK S600平台
