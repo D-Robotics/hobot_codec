@@ -66,6 +66,10 @@ def generate_launch_description():
             'codec_dump_output',
             default_value='False',
             description='Dump codec output configuration'),
+        DeclareLaunchArgument(
+            'codec_out_msg_type',
+            default_value='1080p',
+            description='shared mem output msg type: 1080p | 4k'),
         # 启动零拷贝环境配置node
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
@@ -88,7 +92,8 @@ def generate_launch_description():
                 {"pub_topic": LaunchConfiguration('codec_pub_topic')},
                 {"input_framerate": LaunchConfiguration('codec_input_framerate')},
                 {"output_framerate": LaunchConfiguration('codec_output_framerate')},
-                {"dump_output": LaunchConfiguration('codec_dump_output')}
+                {"dump_output": LaunchConfiguration('codec_dump_output')},
+                {"out_msg_type": LaunchConfiguration('codec_out_msg_type')}
             ],
             arguments=['--ros-args', '--log-level', 'warn']
         ),
