@@ -25,7 +25,7 @@
 #include "img_msgs/msg/h26_x_frame.hpp"
 
 #include "hbm_img_msgs/msg/hbm_msg1080_p.hpp"
-#include "hbm_img_msgs/msg/hbm_msg4_k.hpp"
+#include "hbm_img_msgs/msg/hbm_msg2160_p.hpp"
 #include "hbm_img_msgs/msg/hbm_h26_x_frame.hpp"
 
 #include "include/hobot_codec_impl.h"
@@ -95,15 +95,15 @@ class HobotCodecNode : public rclcpp::Node {
   int32_t mSendIdx = 0;
   rclcpp::Subscription<hbm_img_msgs::msg::HbmMsg1080P>::SharedPtr
       hbmem_subscription_ = nullptr;
-  rclcpp::Subscription<hbm_img_msgs::msg::HbmMsg4K>::SharedPtr
-      hbmem4k_subscription_ = nullptr;
+  rclcpp::Subscription<hbm_img_msgs::msg::HbmMsg2160P>::SharedPtr
+      hbmem2160p_subscription_ = nullptr;
   rclcpp::Subscription<hbm_img_msgs::msg::HbmH26XFrame>::SharedPtr
       hbmemH26x_subscription_;
   void in_ros_topic_cb(sensor_msgs::msg::Image::ConstSharedPtr msg);
   void in_ros_h26x_topic_cb(const img_msgs::msg::H26XFrame::ConstSharedPtr msg);
 
   void in_hbmem_topic_cb(const hbm_img_msgs::msg::HbmMsg1080P::ConstSharedPtr msg);
-  void in_hbmem4k_topic_cb(const hbm_img_msgs::msg::HbmMsg4K::ConstSharedPtr msg);
+  void in_hbmem2160p_topic_cb(const hbm_img_msgs::msg::HbmMsg2160P::ConstSharedPtr msg);
   void in_hbmemh264_topic_cb(const hbm_img_msgs::msg::HbmH26XFrame::ConstSharedPtr msg);
   // shared image message
   sensor_msgs::msg::Image::UniquePtr img_pub_ = nullptr;
@@ -113,11 +113,13 @@ class HobotCodecNode : public rclcpp::Node {
 
   rclcpp::TimerBase::SharedPtr timer_hbmem_ = nullptr;
   rclcpp::Publisher<hbm_img_msgs::msg::HbmMsg1080P>::SharedPtr hbmem_publisher_ = nullptr;
-  rclcpp::Publisher<hbm_img_msgs::msg::HbmMsg4K>::SharedPtr hbmem4k_publisher_ = nullptr;
-  // 共享内存消息档位：1080p（默认）| 4k
+  rclcpp::Publisher<hbm_img_msgs::msg::HbmMsg2160P>::SharedPtr hbmem2160p_publisher_ = nullptr;
+  // 共享内存消息档位：1080p（默认）| 2160p
   std::string in_msg_type_ = "1080p";
   std::string out_msg_type_ = "1080p";
-  void timer_hbmem_pub_4k();
+  int32_t in_width_ = 1920;
+  int32_t in_height_ = 1080;
+  void timer_hbmem_pub_2160p();
   rclcpp::Publisher<hbm_img_msgs::msg::HbmH26XFrame>::SharedPtr h264hbmem_publisher_ = nullptr;
   void timer_ros_pub();
   void timer_hbmem_pub();

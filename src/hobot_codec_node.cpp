@@ -90,7 +90,7 @@ void HobotCodecNode::get_params()
            {"sub_topic", "pub_topic", "channel", "in_mode", "out_mode",
             "in_format", "out_format", "jpg_quality",
             "input_framerate", "output_framerate", "dump_output", "dump_frame_count",
-            "in_msg_type", "out_msg_type"})) {
+            "in_msg_type", "out_msg_type", "in_width", "in_height"})) {
     if (parameter.get_name() == "sub_topic") {
       RCLCPP_INFO(this->get_logger(),
         "sub_topic value: %s", parameter.value_to_string().c_str());
@@ -137,6 +137,12 @@ void HobotCodecNode::get_params()
     } else if (parameter.get_name() == "out_msg_type") {
       out_msg_type_ = parameter.value_to_string();
       RCLCPP_INFO(this->get_logger(), "out_msg_type: %s", out_msg_type_.c_str());
+    } else if (parameter.get_name() == "in_width") {
+      in_width_ = parameter.as_int();
+      RCLCPP_INFO(this->get_logger(), "in_width: %d", in_width_);
+    } else if (parameter.get_name() == "in_height") {
+      in_height_ = parameter.as_int();
+      RCLCPP_INFO(this->get_logger(), "in_height: %d", in_height_);
     } else {
       RCLCPP_WARN(this->get_logger(),
         "Invalid parameter name: %s", parameter.get_name().c_str());
@@ -296,6 +302,9 @@ HobotCodecNode::HobotCodecNode(const rclcpp::NodeOptions& node_options,
   this->declare_parameter("dump_output", false);
   this->declare_parameter("in_msg_type", "1080p");
   this->declare_parameter("out_msg_type", "1080p");
+  // ros jpeg 输入无分辨率信息，vdec 按此建通道（默认 1080p；4K 输入需配 3840x2160）
+  this->declare_parameter("in_width", 1920);
+  this->declare_parameter("in_height", 1080);
   this->declare_parameter("dump_frame_count", dump_frame_count_);
 
   // 更新配置参数
@@ -415,10 +424,10 @@ int HobotCodecNode::init()
       hbmemH26x_subscription_ = this->create_subscription<hbm_img_msgs::msg::HbmH26XFrame>(
         in_sub_topic_, rclcpp::SensorDataQoS(),
         std::bind(&HobotCodecNode::in_hbmemh264_topic_cb, this, std::placeholders::_1));
-    } else if (in_msg_type_ == "4k") {
-      hbmem4k_subscription_ = this->create_subscription<hbm_img_msgs::msg::HbmMsg4K>(
-        in_sub_topic_, rclcpp::SensorDataQoS(),
-        std::bind(&HobotCodecNode::in_hbmem4k_topic_cb, this, std::placeholders::_1));
+    } else if (in_msg_type_ == "2160p") {
+      hbmem2160p_subscription_ = this->create_subscription<hbm_img_msgs::msg::HbmMsg2160P>(
+        in_sub_topic_, rclcpp::SensorDataQoS().keep_last(1),
+        std::bind(&HobotCodecNode::in_hbmem2160p_topic_cb, this, std::placeholders::_1));
     } else {
       hbmem_subscription_ = this->create_subscription<hbm_img_msgs::msg::HbmMsg1080P>(
         in_sub_topic_, rclcpp::SensorDataQoS(),
@@ -446,8 +455,8 @@ int HobotCodecNode::init()
       0 == out_format_.compare("h265") ) {
       h264hbmem_publisher_ = this->create_publisher<hbm_img_msgs::msg::HbmH26XFrame>(
         out_pub_topic_.c_str(), rclcpp::SensorDataQoS());
-    } else if (out_msg_type_ == "4k") {
-      hbmem4k_publisher_ = this->create_publisher<hbm_img_msgs::msg::HbmMsg4K>(
+    } else if (out_msg_type_ == "2160p") {
+      hbmem2160p_publisher_ = this->create_publisher<hbm_img_msgs::msg::HbmMsg2160P>(
         out_pub_topic_.c_str(), rclcpp::SensorDataQoS());
     } else {
       hbmem_publisher_ = this->create_publisher<hbm_img_msgs::msg::HbmMsg1080P>(
@@ -626,10 +635,10 @@ void HobotCodecNode::in_hbmem_topic_cb(
   RCLCPP_INFO(this->get_logger(), "%s", ss.str().data());
 }
 
-// 4K 档位订阅回调：由 in_hbmem_topic_cb 程序化复制（HbmMsg1080P -> HbmMsg4K），
+// 2160P 档位订阅回调：由 in_hbmem_topic_cb 程序化复制（HbmMsg1080P -> HbmMsg2160P），
 // 主体逻辑完全一致，改动时需两处同步。
-void HobotCodecNode::in_hbmem4k_topic_cb(
-    const hbm_img_msgs::msg::HbmMsg4K::ConstSharedPtr msg) {
+void HobotCodecNode::in_hbmem2160p_topic_cb(
+    const hbm_img_msgs::msg::HbmMsg2160P::ConstSharedPtr msg) {
   if (!rclcpp::ok()) {
     return;
   }
@@ -926,8 +935,8 @@ void HobotCodecNode::in_ros_compressed_cb(
     << ", size: " << img_msg->data.size()
   );
 
-  // TODO 20230117 使用实际的分辨率
-  sp_hobot_codec_impl_->Input(img_msg->data.data(), 1920, 1080, img_msg->data.size(),
+  // ros CompressedImage 不携带分辨率，使用配置的输入分辨率建解码通道
+  sp_hobot_codec_impl_->Input(img_msg->data.data(), in_width_, in_height_, img_msg->data.size(),
     std::make_shared<FrameInfo>(0, time_in, time_now, img_msg->header.frame_id));
 }
 // static struct timespec time_last;
@@ -1201,8 +1210,8 @@ void HobotCodecNode::timer_hbmem_pub() {
     return;
   }
 
-  if (hbmem4k_publisher_) {
-    timer_hbmem_pub_4k();
+  if (hbmem2160p_publisher_) {
+    timer_hbmem_pub_2160p();
     return;
   }
 
@@ -1434,9 +1443,9 @@ if(oFrame->mPtrData != nullptr)
   RCLCPP_INFO(this->get_logger(), "%s", ss.str().data());
 }
 
-// 4K 档位发布路径：由 timer_hbmem_pub 程序化复制（hbmem_publisher_ -> hbmem4k_publisher_），
+// 2160P 档位发布路径：由 timer_hbmem_pub 程序化复制（hbmem_publisher_ -> hbmem2160p_publisher_），
 // 主体逻辑与 1080P 档完全一致，改动时需两处同步。
-void HobotCodecNode::timer_hbmem_pub_4k() {
+void HobotCodecNode::timer_hbmem_pub_2160p() {
   if (!rclcpp::ok()) {
     return;
   }
@@ -1514,8 +1523,8 @@ void HobotCodecNode::timer_hbmem_pub_4k() {
       RCLCPP_WARN(this->get_logger(), "hbm_h26x borrow_loaned_message failed");
     }
   } else {
-    if (!hbmem4k_publisher_) {
-      RCLCPP_ERROR_STREAM(this->get_logger(), "Invalid hbmem4k_publisher_!");
+    if (!hbmem2160p_publisher_) {
+      RCLCPP_ERROR_STREAM(this->get_logger(), "Invalid hbmem2160p_publisher_!");
       return;
     }
     if (frame_interval_t_ > 0) {
@@ -1533,7 +1542,7 @@ void HobotCodecNode::timer_hbmem_pub_4k() {
         pub_time_q_.pop();
       }
     } 
-    auto loanedMsg = hbmem4k_publisher_->borrow_loaned_message();
+    auto loanedMsg = hbmem2160p_publisher_->borrow_loaned_message();
     if (loanedMsg.is_valid()) {
       auto& msg = loanedMsg.get();
       msg.time_stamp.sec = oFrame->sp_frame_info->img_ts_.tv_sec;
@@ -1629,7 +1638,7 @@ if(oFrame->mPtrData != nullptr)
         ofs.write(reinterpret_cast<const char*>(msg.data.data()), msg.data_size);
       }
 
-      hbmem4k_publisher_->publish(std::move(loanedMsg));
+      hbmem2160p_publisher_->publish(std::move(loanedMsg));
       {
         auto tp_raw_now = std::chrono::system_clock::now();
         std::unique_lock<std::mutex> lk(frame_statraw_mtx_);

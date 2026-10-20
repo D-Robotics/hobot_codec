@@ -67,9 +67,21 @@ def generate_launch_description():
             default_value='False',
             description='Dump codec output configuration'),
         DeclareLaunchArgument(
+            'codec_in_msg_type',
+            default_value='1080p',
+            description='shared mem input msg type: 1080p | 2160p'),
+        DeclareLaunchArgument(
+            'codec_in_width',
+            default_value='1920',
+            description='ros jpeg input width, vdec channel size (4K input needs 3840)'),
+        DeclareLaunchArgument(
+            'codec_in_height',
+            default_value='1080',
+            description='ros jpeg input height, vdec channel size (4K input needs 2160)'),
+        DeclareLaunchArgument(
             'codec_out_msg_type',
             default_value='1080p',
-            description='shared mem output msg type: 1080p | 4k'),
+            description='shared mem output msg type: 1080p | 2160p'),
         # 启动零拷贝环境配置node
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
@@ -86,6 +98,7 @@ def generate_launch_description():
                 {"channel": LaunchConfiguration('codec_channel')},
                 {"in_mode": LaunchConfiguration('codec_in_mode')},
                 {"in_format": LaunchConfiguration('codec_in_format')},
+                {"in_msg_type": LaunchConfiguration('codec_in_msg_type')},
                 {"out_mode": LaunchConfiguration('codec_out_mode')},
                 {"out_format": LaunchConfiguration('codec_out_format')},
                 {"sub_topic": LaunchConfiguration('codec_sub_topic')},
@@ -93,7 +106,9 @@ def generate_launch_description():
                 {"input_framerate": LaunchConfiguration('codec_input_framerate')},
                 {"output_framerate": LaunchConfiguration('codec_output_framerate')},
                 {"dump_output": LaunchConfiguration('codec_dump_output')},
-                {"out_msg_type": LaunchConfiguration('codec_out_msg_type')}
+                {"out_msg_type": LaunchConfiguration('codec_out_msg_type')},
+                {"in_width": LaunchConfiguration('codec_in_width')},
+                {"in_height": LaunchConfiguration('codec_in_height')}
             ],
             arguments=['--ros-args', '--log-level', 'warn']
         ),

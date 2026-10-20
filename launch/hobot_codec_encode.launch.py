@@ -73,7 +73,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'codec_in_msg_type',
             default_value='1080p',
-            description='shared mem input msg type: 1080p | 4k'),
+            description='shared mem input msg type: 1080p | 2160p'),
         DeclareLaunchArgument(
             'log_level',
             default_value='warn',
