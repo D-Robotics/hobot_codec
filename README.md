@@ -121,6 +121,7 @@ ros2 run hobot_codec hobot_codec_republish
 | out_mode         | Data transmission method to send out | ros/shared_mem                        | ros                   |
 | in_format        | Subscribed data format        | bgr8/rgb8/nv12/jpeg/h264/h265     | bgr8                  |
 | out_format       | Format of published data after processing | bgr8/rgb8/nv12/jpeg/h264/h265 | jpeg                  |
+| resolution       | Image data resolution | 1080P/2160P | 1080P                  |
 | sub_topic        | Topic name to subscribe to    | Any string, but must be published by another node | /image_raw        |
 | pub_topic        | Topic name to publish         | Any string                                    | /image_raw/compressed |
 | jpg_quality      | JPEG encoding quality         | Float number 0-100                             | 60.0                  |
