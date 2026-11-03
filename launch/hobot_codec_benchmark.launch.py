@@ -45,6 +45,9 @@ def generate_launch_description():
     codec_out_format_launch_arg = DeclareLaunchArgument(
         "codec_out_format", default_value=TextSubstitution(text="null")
     )
+    codec_resolution_launch_arg = DeclareLaunchArgument(
+        "codec_resolution", default_value=TextSubstitution(text="1080P")
+    )
     is_compressed_img_pub_launch_arg = DeclareLaunchArgument(
         "is_compressed_img_pub", default_value=TextSubstitution(text="false")
     )
@@ -54,6 +57,7 @@ def generate_launch_description():
         image_format_launch_arg,
         codec_in_format_launch_arg,
         codec_out_format_launch_arg,
+        codec_resolution_launch_arg,
         is_compressed_img_pub_launch_arg,
         # 启动零拷贝环境配置node
         IncludeLaunchDescription(
@@ -91,6 +95,7 @@ def generate_launch_description():
                 {"in_format": LaunchConfiguration('codec_in_format')},
                 {"out_mode": "ros"},
                 {"out_format": LaunchConfiguration('codec_out_format')},
+                {"resolution": LaunchConfiguration('codec_resolution')},
                 {"sub_topic": "/hbmem_img"},
                 {"pub_topic": "/image_jpeg"},
                 {"dump_output": False}

@@ -47,6 +47,10 @@ def generate_launch_description():
             default_value='jpeg',
             description='image ouput format'),
         DeclareLaunchArgument(
+            'codec_resolution',
+            default_value='1080P',
+            description='image resolution'),
+        DeclareLaunchArgument(
             'codec_sub_topic',
             default_value='/hbmem_img',
             description='subscribe topic name'),
@@ -92,6 +96,7 @@ def generate_launch_description():
                 {"in_format": LaunchConfiguration('codec_in_format')},
                 {"out_mode": LaunchConfiguration('codec_out_mode')},
                 {"out_format": LaunchConfiguration('codec_out_format')},
+                {"resolution": LaunchConfiguration('codec_resolution')},
                 {"sub_topic": LaunchConfiguration('codec_sub_topic')},
                 {"pub_topic": LaunchConfiguration('codec_pub_topic')},
                 {"jpg_quality": LaunchConfiguration('codec_jpg_quality')},
